@@ -18,12 +18,10 @@ $ tf-plan-cost diff plan.json
 > | `aws_instance.api[0]` | ~ m6i.large → m6i.xlarge | $72.48 | $142.56 | +$70.08 |
 > | `aws_ebs_volume.data` | ~ gp3 100 GB → gp3 500 GB | $8.00 | $40.00 | +$32.00 |
 
-The output is GitHub-flavored Markdown, so it can be posted directly as a pull request comment.
+Use it as a **GitHub Action** that comments on pull requests (and can fail when a change costs too much), or as a **CLI**.
 
 > [!NOTE]
-> **Status:** the CLI and pricing engine are done. Two more modes are planned and will reuse this engine:
-> - a **GitHub Action** that comments on pull requests;
-> - a **GitHub App** that also posts a Check Run and can fail it above a cost limit.
+> **Status:** the CLI and GitHub Action work. A **GitHub App** mode, which posts a Check Run without AWS credentials in your CI, is next.
 
 ## Architecture
 
@@ -58,6 +56,63 @@ flowchart LR
 4. **Render** (`internal/render`). Writes a Markdown comment, with a hidden `<!-- tf-plan-cost -->` marker so later runs can update the same PR comment, or JSON for scripts. Amounts are decimal strings to avoid floating-point rounding.
 
 Cloud credentials for `terraform plan` stay in your own CI. `tf-plan-cost` only needs read access to public AWS prices.
+
+## GitHub Action
+
+Add one step after `terraform plan`. It prices the plan and then creates or updates a single comment on the pull request. It also writes the same report to the job summary.
+
+```yaml
+permissions:
+  contents: read
+  pull-requests: write # create/update the cost comment
+  id-token: write      # OIDC for AWS credentials
+
+steps:
+  # ... checkout, AWS credentials, terraform init/plan ...
+  - run: terraform show -json tfplan > plan.json
+  - uses: mubarak-j/tf-plan-cost@main # pin to @v1 once released
+    with:
+      plan: plan.json
+```
+
+A complete workflow is in [`examples/workflows/terraform-cost.yml`](examples/workflows/terraform-cost.yml).
+
+**AWS credentials.** The step needs credentials allowed to call `pricing:GetProducts` (see [Usage](#1-give-it-aws-credentials)). [`examples/aws-oidc-role`](examples/aws-oidc-role) is Terraform for an OIDC role limited to that one action, so no keys are stored in GitHub.
+
+**Cost limit.** To fail the step when a pull request adds more than a set amount per month, add `.tf-plan-cost.yml` to the repository root:
+
+```yaml
+fail_above_monthly_usd: 500
+```
+
+The comment still posts and shows a caution. Decreases never fail. Unknown keys are rejected, so a typo can't silently turn the limit off.
+
+| Input | Default | Description |
+|---|---|---|
+| `plan` | *(required)* | Path to `terraform show -json` output |
+| `region` | `$AWS_REGION` | Region for resources whose region isn't in the plan |
+| `comment` | `true` | Create or update the PR comment |
+| `comment-id` | `default` | Separate comment per Terraform root, e.g. `prod` |
+| `comment-on-no-change` | `false` | Comment even when nothing changes (an existing comment is always updated) |
+| `config` | `.tf-plan-cost.yml` | Limit config; a missing file means no limit |
+| `github-token` | `${{ github.token }}` | Needs `pull-requests: write` |
+
+| Output | Example |
+|---|---|
+| `delta-monthly-usd` | `242.24` |
+| `total-before-monthly-usd` / `total-after-monthly-usd` | `323.57` / `565.81` |
+| `exceeded` | `false` |
+| `comment-url` | link to the comment |
+
+**Behavior:**
+- **Monorepos:** run the step once per Terraform root with a different `comment-id`. Each root then gets its own comment.
+- **Updating:** a later run finds the comment by a hidden marker and edits it. Only comments written by the same token's user are matched, so a person quoting the marker is never edited.
+- **Fork PRs and push events:** commenting is skipped with a warning, because the token is read-only or there is no PR. The report still goes to the job summary.
+- **No resource changes:** nothing is posted, unless an earlier comment exists. That comment is updated to "no cost change".
+
+**Notes:**
+- Until the first release, the action builds `tf-plan-cost` from source on each run. It uses the runner's Go when one is installed (any Go 1.21+ fetches the right version itself), so your `PATH` is unchanged. It installs Go only when none is present.
+- On GitHub Enterprise Server, the API URL is read from `GITHUB_API_URL`.
 
 ## Install
 
@@ -121,10 +176,13 @@ terraform show -json tfplan | tf-plan-cost diff -   # read from stdin
 | `--no-cache` | `false` | Don't read or write the price cache |
 | `--cache-dir` | user cache dir (`~/Library/Caches/tf-plan-cost/prices` on macOS, `~/.cache/tf-plan-cost/prices` on Linux) | Where cached prices are stored |
 
+`tf-plan-cost github-comment --report report.json` posts a JSON report (from `diff --format json`) as a PR comment. It is what the Action runs, and it reads the standard `GITHUB_*` environment variables. Run `tf-plan-cost github-comment -h` for its flags.
+
 **Exit codes:**
 - `0`: success, including when some resources are listed as not priced.
 - `1`: a real error, such as an unreadable plan or missing AWS credentials.
 - `2`: invalid usage.
+- `3`: (`github-comment` only) the cost increase is above `fail_above_monthly_usd`.
 
 ### Reading the output
 
