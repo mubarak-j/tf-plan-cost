@@ -1,0 +1,153 @@
+{
+  "items": [
+    {
+      "address": "aws_eks_node_group.default",
+      "type": "aws_eks_node_group",
+      "action": "update",
+      "before": {
+        "monthly_usd": "210.24",
+        "summary": "3 × m6i.large",
+        "components": [
+          {
+            "name": "nodes",
+            "monthly_usd": "210.24",
+            "detail": "3 × m6i.large on-demand Linux @ $0.096/hr"
+          }
+        ],
+        "notes": [
+          "node root volumes not included",
+          "priced as m6i.large; other instance types (m5.large) may cost more or less"
+        ]
+      },
+      "after": {
+        "monthly_usd": "350.4",
+        "summary": "5 × m6i.large",
+        "components": [
+          {
+            "name": "nodes",
+            "monthly_usd": "350.4",
+            "detail": "5 × m6i.large on-demand Linux @ $0.096/hr"
+          }
+        ],
+        "notes": [
+          "node root volumes not included",
+          "priced as m6i.large; other instance types (m5.large) may cost more or less"
+        ]
+      },
+      "delta_monthly_usd": "140.16"
+    },
+    {
+      "address": "aws_instance.api[0]",
+      "type": "aws_instance",
+      "action": "update",
+      "before": {
+        "monthly_usd": "72.48",
+        "summary": "m6i.large",
+        "components": [
+          {
+            "name": "compute",
+            "monthly_usd": "70.08",
+            "detail": "m6i.large on-demand Linux @ $0.096/hr"
+          },
+          {
+            "name": "root volume",
+            "monthly_usd": "2.4",
+            "detail": "gp3 30 GB @ $0.08/GB-mo"
+          }
+        ]
+      },
+      "after": {
+        "monthly_usd": "142.56",
+        "summary": "m6i.xlarge",
+        "components": [
+          {
+            "name": "compute",
+            "monthly_usd": "140.16",
+            "detail": "m6i.xlarge on-demand Linux @ $0.192/hr"
+          },
+          {
+            "name": "root volume",
+            "monthly_usd": "2.4",
+            "detail": "gp3 30 GB @ $0.08/GB-mo"
+          }
+        ]
+      },
+      "delta_monthly_usd": "70.08"
+    },
+    {
+      "address": "aws_ebs_volume.data",
+      "type": "aws_ebs_volume",
+      "action": "update",
+      "before": {
+        "monthly_usd": "8",
+        "summary": "gp3 100 GB",
+        "components": [
+          {
+            "name": "storage",
+            "monthly_usd": "8",
+            "detail": "gp3 100 GB @ $0.08/GB-mo"
+          }
+        ]
+      },
+      "after": {
+        "monthly_usd": "40",
+        "summary": "gp3 500 GB",
+        "components": [
+          {
+            "name": "storage",
+            "monthly_usd": "40",
+            "detail": "gp3 500 GB @ $0.08/GB-mo"
+          }
+        ]
+      },
+      "delta_monthly_usd": "32"
+    },
+    {
+      "address": "aws_nat_gateway.main",
+      "type": "aws_nat_gateway",
+      "action": "no-op",
+      "before": {
+        "monthly_usd": "32.85",
+        "summary": "NAT gateway (public)",
+        "components": [
+          {
+            "name": "gateway",
+            "monthly_usd": "32.85",
+            "detail": "NAT gateway @ $0.045/hr"
+          }
+        ],
+        "notes": [
+          "data processing at $0.045/GB not included"
+        ]
+      },
+      "after": {
+        "monthly_usd": "32.85",
+        "summary": "NAT gateway (public)",
+        "components": [
+          {
+            "name": "gateway",
+            "monthly_usd": "32.85",
+            "detail": "NAT gateway @ $0.045/hr"
+          }
+        ],
+        "notes": [
+          "data processing at $0.045/GB not included"
+        ]
+      },
+      "delta_monthly_usd": "0"
+    }
+  ],
+  "unpriced": [],
+  "unsupported": [
+    {
+      "address": "aws_s3_bucket.logs",
+      "type": "aws_s3_bucket",
+      "action": "update",
+      "reason": "resource type not supported yet"
+    }
+  ],
+  "total_before_monthly_usd": "323.57",
+  "total_after_monthly_usd": "565.81",
+  "delta_monthly_usd": "242.24",
+  "prices_as_of": "2026-11-07T06:13:37.777807Z"
+}

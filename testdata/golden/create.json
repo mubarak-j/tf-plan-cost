@@ -1,0 +1,210 @@
+{
+  "items": [
+    {
+      "address": "aws_db_instance.app",
+      "type": "aws_db_instance",
+      "action": "create",
+      "after": {
+        "monthly_usd": "255.14",
+        "summary": "db.m6g.large PostgreSQL Multi-AZ, gp3 100 GB",
+        "components": [
+          {
+            "name": "instance",
+            "monthly_usd": "232.14",
+            "detail": "db.m6g.large PostgreSQL Multi-AZ @ $0.318/hr"
+          },
+          {
+            "name": "storage",
+            "monthly_usd": "23",
+            "detail": "gp3 100 GB @ $0.23/GB-mo"
+          }
+        ]
+      },
+      "delta_monthly_usd": "255.14"
+    },
+    {
+      "address": "aws_eks_node_group.default",
+      "type": "aws_eks_node_group",
+      "action": "create",
+      "after": {
+        "monthly_usd": "210.24",
+        "summary": "3 × m6i.large",
+        "components": [
+          {
+            "name": "nodes",
+            "monthly_usd": "210.24",
+            "detail": "3 × m6i.large on-demand Linux @ $0.096/hr"
+          }
+        ],
+        "notes": [
+          "node root volumes not included"
+        ]
+      },
+      "delta_monthly_usd": "210.24"
+    },
+    {
+      "address": "aws_eks_cluster.main",
+      "type": "aws_eks_cluster",
+      "action": "create",
+      "after": {
+        "monthly_usd": "73",
+        "summary": "EKS cluster v1.33",
+        "components": [
+          {
+            "name": "control plane",
+            "monthly_usd": "73",
+            "detail": "EKS cluster @ $0.10/hr"
+          }
+        ],
+        "notes": [
+          "extended support ($0.50/hr, $365.00/mo) applies instead once the Kubernetes version leaves standard support"
+        ]
+      },
+      "delta_monthly_usd": "73"
+    },
+    {
+      "address": "aws_instance.api[0]",
+      "type": "aws_instance",
+      "action": "create",
+      "after": {
+        "monthly_usd": "72.48",
+        "summary": "m6i.large",
+        "components": [
+          {
+            "name": "compute",
+            "monthly_usd": "70.08",
+            "detail": "m6i.large on-demand Linux @ $0.096/hr"
+          },
+          {
+            "name": "root volume",
+            "monthly_usd": "2.4",
+            "detail": "gp3 30 GB @ $0.08/GB-mo"
+          }
+        ]
+      },
+      "delta_monthly_usd": "72.48"
+    },
+    {
+      "address": "aws_instance.api[1]",
+      "type": "aws_instance",
+      "action": "create",
+      "after": {
+        "monthly_usd": "72.48",
+        "summary": "m6i.large",
+        "components": [
+          {
+            "name": "compute",
+            "monthly_usd": "70.08",
+            "detail": "m6i.large on-demand Linux @ $0.096/hr"
+          },
+          {
+            "name": "root volume",
+            "monthly_usd": "2.4",
+            "detail": "gp3 30 GB @ $0.08/GB-mo"
+          }
+        ]
+      },
+      "delta_monthly_usd": "72.48"
+    },
+    {
+      "address": "aws_ebs_volume.data",
+      "type": "aws_ebs_volume",
+      "action": "create",
+      "after": {
+        "monthly_usd": "60",
+        "summary": "gp3 500 GB",
+        "components": [
+          {
+            "name": "storage",
+            "monthly_usd": "40",
+            "detail": "gp3 500 GB @ $0.08/GB-mo"
+          },
+          {
+            "name": "storage IOPS",
+            "monthly_usd": "15",
+            "detail": "extra 3000 IOPS @ $0.005/IOPS-mo"
+          },
+          {
+            "name": "storage throughput",
+            "monthly_usd": "5",
+            "detail": "extra 125 MiB/s @ $0.04/MiBps-mo"
+          }
+        ]
+      },
+      "delta_monthly_usd": "60"
+    },
+    {
+      "address": "aws_nat_gateway.main",
+      "type": "aws_nat_gateway",
+      "action": "create",
+      "after": {
+        "monthly_usd": "32.85",
+        "summary": "NAT gateway (public)",
+        "components": [
+          {
+            "name": "gateway",
+            "monthly_usd": "32.85",
+            "detail": "NAT gateway @ $0.045/hr"
+          }
+        ],
+        "notes": [
+          "data processing at $0.045/GB not included"
+        ]
+      },
+      "delta_monthly_usd": "32.85"
+    },
+    {
+      "address": "module.edge.aws_nat_gateway.edge",
+      "type": "aws_nat_gateway",
+      "action": "create",
+      "after": {
+        "monthly_usd": "32.85",
+        "summary": "NAT gateway (public)",
+        "components": [
+          {
+            "name": "gateway",
+            "monthly_usd": "32.85",
+            "detail": "NAT gateway @ $0.045/hr"
+          }
+        ],
+        "notes": [
+          "data processing at $0.045/GB not included"
+        ]
+      },
+      "delta_monthly_usd": "32.85"
+    },
+    {
+      "address": "aws_lb.web",
+      "type": "aws_lb",
+      "action": "create",
+      "after": {
+        "monthly_usd": "16.425",
+        "summary": "Application Load Balancer",
+        "components": [
+          {
+            "name": "load balancer",
+            "monthly_usd": "16.425",
+            "detail": "Application Load Balancer @ $0.0225/hr"
+          }
+        ],
+        "notes": [
+          "capacity units (LCU) at $0.008/LCU-Hrs not included"
+        ]
+      },
+      "delta_monthly_usd": "16.425"
+    }
+  ],
+  "unpriced": [],
+  "unsupported": [
+    {
+      "address": "aws_s3_bucket.logs",
+      "type": "aws_s3_bucket",
+      "action": "create",
+      "reason": "resource type not supported yet"
+    }
+  ],
+  "total_before_monthly_usd": "0",
+  "total_after_monthly_usd": "825.465",
+  "delta_monthly_usd": "825.465",
+  "prices_as_of": "2026-11-07T06:13:36.361814Z"
+}

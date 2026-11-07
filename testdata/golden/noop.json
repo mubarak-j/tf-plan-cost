@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "address": "aws_nat_gateway.main",
+      "type": "aws_nat_gateway",
+      "action": "no-op",
+      "before": {
+        "monthly_usd": "32.85",
+        "summary": "NAT gateway (public)",
+        "components": [
+          {
+            "name": "gateway",
+            "monthly_usd": "32.85",
+            "detail": "NAT gateway @ $0.045/hr"
+          }
+        ],
+        "notes": [
+          "data processing at $0.045/GB not included"
+        ]
+      },
+      "after": {
+        "monthly_usd": "32.85",
+        "summary": "NAT gateway (public)",
+        "components": [
+          {
+            "name": "gateway",
+            "monthly_usd": "32.85",
+            "detail": "NAT gateway @ $0.045/hr"
+          }
+        ],
+        "notes": [
+          "data processing at $0.045/GB not included"
+        ]
+      },
+      "delta_monthly_usd": "0"
+    }
+  ],
+  "unpriced": [],
+  "unsupported": [],
+  "total_before_monthly_usd": "32.85",
+  "total_after_monthly_usd": "32.85",
+  "delta_monthly_usd": "0",
+  "prices_as_of": "2026-11-07T06:13:40.812256Z"
+}

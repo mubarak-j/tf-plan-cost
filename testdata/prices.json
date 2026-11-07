@@ -1,0 +1,226 @@
+{
+  "AWSELB|groupDescription=LoadBalancer hourly usage by Application Load Balancer|productFamily=Load Balancer-Application|regionCode=us-west-2": {
+    "usd": "0.0225",
+    "unit": "Hrs",
+    "sku": "7AKU6NT3G9ZEJTB5",
+    "description": "$0.0225 per Application LoadBalancer-hour (or partial hour)",
+    "fetched_at": "2026-11-07T06:13:37.155531Z"
+  },
+  "AWSELB|groupDescription=LoadBalancer hourly usage by Network Load Balancer|productFamily=Load Balancer-Network|regionCode=us-west-2": {
+    "usd": "0.0225",
+    "unit": "Hrs",
+    "sku": "SCYRS8C539B49TTY",
+    "description": "$0.0225 per Network LoadBalancer-hour (or partial hour)",
+    "fetched_at": "2026-11-07T06:13:38.416111Z"
+  },
+  "AWSELB|groupDescription=Used Application Load Balancer capacity units-hr|productFamily=Load Balancer-Application|regionCode=us-west-2": {
+    "usd": "0.008",
+    "unit": "LCU-Hrs",
+    "sku": "2ETY8Y426S4237JU",
+    "description": "$0.008 per used Application load balancer capacity unit-hour (or partial hour)",
+    "fetched_at": "2026-11-07T06:13:37.23877Z"
+  },
+  "AWSELB|groupDescription=Used Network Load Balancer capacity units-hr|productFamily=Load Balancer-Network|regionCode=us-west-2": {
+    "usd": "0.006",
+    "unit": "LCU-Hrs",
+    "sku": "95U72SGSJVUFNAXW",
+    "description": "$0.006 per used Network load balancer capacity unit-hour (or partial hour)",
+    "fetched_at": "2026-11-07T06:13:38.487527Z"
+  },
+  "AmazonEC2|capacitystatus=Used|instanceType=m5.large|licenseModel=No License required|operatingSystem=Linux|preInstalledSw=NA|regionCode=us-east-1|tenancy=Shared": {
+    "usd": "0.096",
+    "unit": "Hrs",
+    "sku": "6C86BEPQVG73ZGGR",
+    "description": "$0.096 per On Demand Linux m5.large Instance Hour",
+    "fetched_at": "2026-11-07T06:13:39.162657Z"
+  },
+  "AmazonEC2|capacitystatus=Used|instanceType=m6i.large|licenseModel=No License required|operatingSystem=Linux|preInstalledSw=NA|regionCode=us-east-1|tenancy=Dedicated": {
+    "usd": "0.1056",
+    "unit": "Hrs",
+    "sku": "5MF8FYT484XWJFTZ",
+    "description": "$0.1056 per Dedicated Linux m6i.large Instance Hour",
+    "fetched_at": "2026-11-07T06:13:39.308634Z"
+  },
+  "AmazonEC2|capacitystatus=Used|instanceType=m6i.large|licenseModel=No License required|operatingSystem=Linux|preInstalledSw=NA|regionCode=us-east-1|tenancy=Shared": {
+    "usd": "0.096",
+    "unit": "Hrs",
+    "sku": "B8JJ44GS8MG4RPR4",
+    "description": "$0.096 per On Demand Linux m6i.large Instance Hour",
+    "fetched_at": "2026-11-07T06:13:38.164229Z"
+  },
+  "AmazonEC2|capacitystatus=Used|instanceType=m6i.large|licenseModel=No License required|operatingSystem=Linux|preInstalledSw=NA|regionCode=us-west-2|tenancy=Shared": {
+    "usd": "0.096",
+    "unit": "Hrs",
+    "sku": "M2FWPJS5NYCRADSV",
+    "description": "$0.096 per On Demand Linux m6i.large Instance Hour",
+    "fetched_at": "2026-11-07T06:13:39.849613Z"
+  },
+  "AmazonEC2|capacitystatus=Used|instanceType=m6i.xlarge|licenseModel=No License required|operatingSystem=Linux|preInstalledSw=NA|regionCode=us-east-1|tenancy=Shared": {
+    "usd": "0.192",
+    "unit": "Hrs",
+    "sku": "2UVH39HPDNC399X4",
+    "description": "$0.192 per On Demand Linux m6i.xlarge Instance Hour",
+    "fetched_at": "2026-11-07T06:13:37.777807Z"
+  },
+  "AmazonEC2|capacitystatus=Used|instanceType=t3.micro|licenseModel=No License required|operatingSystem=Linux|preInstalledSw=NA|regionCode=us-east-1|tenancy=Shared": {
+    "usd": "0.0104",
+    "unit": "Hrs",
+    "sku": "CRAJUW7BTXFMT2UJ",
+    "description": "$0.0104 per On Demand Linux t3.micro Instance Hour",
+    "fetched_at": "2026-11-07T06:13:40.657311Z"
+  },
+  "AmazonEC2|group=EBS IOPS Tier 2|productFamily=System Operation|regionCode=us-east-1|volumeApiName=io2": {
+    "usd": "0.0455",
+    "unit": "IOPS-Mo",
+    "sku": "KDKG2R3W4NMV7CHP",
+    "description": "$0.0455 per IOPS-month provisioned (io2) for 32001-64000 IOPS for a volume that has provisioned greater an 32000 IOPS",
+    "fetched_at": "2026-11-07T06:13:39.690897Z"
+  },
+  "AmazonEC2|group=EBS IOPS Tier 3|productFamily=System Operation|regionCode=us-east-1|volumeApiName=io2": {
+    "usd": "0.03185",
+    "unit": "IOPS-Mo",
+    "sku": "AX8G343U7JZBRKJB",
+    "description": "$0.032 per IOPS-month provisioned (io2) for over 64000 IOPS for a volume that has provisioned greater an 64000 IOPS",
+    "fetched_at": "2026-11-07T06:13:39.766428Z"
+  },
+  "AmazonEC2|group=EBS IOPS|productFamily=System Operation|regionCode=us-east-1|volumeApiName=gp3": {
+    "usd": "0.005",
+    "unit": "IOPS-Mo",
+    "sku": "7Q58NR58VQEASA4W",
+    "description": "$0.005 per provisioned IOPS-month of gp3 - US East (N. Virginia)",
+    "fetched_at": "2026-11-07T06:13:36.361814Z"
+  },
+  "AmazonEC2|group=EBS IOPS|productFamily=System Operation|regionCode=us-east-1|volumeApiName=io1": {
+    "usd": "0.065",
+    "unit": "IOPS-Mo",
+    "sku": "D8RDVC722HKNR55G",
+    "description": "$0.065 per IOPS-month provisioned - US East (Northern Virginia)",
+    "fetched_at": "2026-11-07T06:13:39.46297Z"
+  },
+  "AmazonEC2|group=EBS IOPS|productFamily=System Operation|regionCode=us-east-1|volumeApiName=io2": {
+    "usd": "0.065",
+    "unit": "IOPS-Mo",
+    "sku": "X9AGQNCQXFA9Q8XZ",
+    "description": "$0.065 per IOPS-month provisioned (io2) - US East (Northern Virginia)",
+    "fetched_at": "2026-11-07T06:13:39.614082Z"
+  },
+  "AmazonEC2|group=EBS Throughput|productFamily=Provisioned Throughput|regionCode=us-east-1|volumeApiName=gp3": {
+    "usd": "40.96",
+    "unit": "GiBps-mo",
+    "sku": "SQUFRQX4K92S4SBB",
+    "description": "$0.04 per provisioned MiBps-month of gp3 - US East (N. Virginia)",
+    "fetched_at": "2026-11-07T06:13:36.447168Z"
+  },
+  "AmazonEC2|groupDescription=Charge for per GB data processed by NatGateways|productFamily=NAT Gateway|regionCode=us-east-1": {
+    "usd": "0.045",
+    "unit": "GB",
+    "sku": "59S5R83GFPUAGVR5",
+    "description": "$0.045 per GB Data Processed by NAT Gateways",
+    "fetched_at": "2026-11-07T06:13:40.88445Z"
+  },
+  "AmazonEC2|groupDescription=Charge for per GB data processed by NatGateways|productFamily=NAT Gateway|regionCode=us-west-2": {
+    "usd": "0.045",
+    "unit": "GB",
+    "sku": "9AXD6XJT8GZWPQED",
+    "description": "$0.045 per GB Data Processed by NAT Gateways",
+    "fetched_at": "2026-11-07T06:13:37.556778Z"
+  },
+  "AmazonEC2|groupDescription=Hourly charge for NAT Gateways|productFamily=NAT Gateway|regionCode=us-east-1": {
+    "usd": "0.045",
+    "unit": "Hrs",
+    "sku": "M2YSHUBETB3JX4M4",
+    "description": "$0.045 per NAT Gateway Hour",
+    "fetched_at": "2026-11-07T06:13:40.812256Z"
+  },
+  "AmazonEC2|groupDescription=Hourly charge for NAT Gateways|productFamily=NAT Gateway|regionCode=us-west-2": {
+    "usd": "0.045",
+    "unit": "Hrs",
+    "sku": "44T683R45QPT8RYQ",
+    "description": "$0.045 per NAT Gateway Hour",
+    "fetched_at": "2026-11-07T06:13:37.471438Z"
+  },
+  "AmazonEC2|productFamily=Storage|regionCode=us-east-1|volumeApiName=gp2": {
+    "usd": "0.1",
+    "unit": "GB-Mo",
+    "sku": "HY3BZPP2B6K8MSJF",
+    "description": "$0.10 per GB-month of General Purpose SSD (gp2) provisioned storage - US East (Northern Virginia)",
+    "fetched_at": "2026-11-07T06:13:39.234375Z"
+  },
+  "AmazonEC2|productFamily=Storage|regionCode=us-east-1|volumeApiName=gp3": {
+    "usd": "0.08",
+    "unit": "GB-Mo",
+    "sku": "JG3KUJMBRGHV3N8G",
+    "description": "$0.08 per GB-month of General Purpose (gp3) provisioned storage - US East (N. Virginia)",
+    "fetched_at": "2026-11-07T06:13:40.737818Z"
+  },
+  "AmazonEC2|productFamily=Storage|regionCode=us-east-1|volumeApiName=io1": {
+    "usd": "0.125",
+    "unit": "GB-Mo",
+    "sku": "JR4AM7VS63CTEPMN",
+    "description": "$0.125 per GB-month of Provisioned IOPS SSD (io1)  provisioned storage - US East (Northern Virginia)",
+    "fetched_at": "2026-11-07T06:13:39.392774Z"
+  },
+  "AmazonEC2|productFamily=Storage|regionCode=us-east-1|volumeApiName=io2": {
+    "usd": "0.125",
+    "unit": "GB-month",
+    "sku": "6V576P37PS7K7KYU",
+    "description": "$0.125 per GB-month of Provisioned IOPS SSD (io2)  provisioned storage - US East (Northern Virginia)",
+    "fetched_at": "2026-11-07T06:13:39.534907Z"
+  },
+  "AmazonEC2|productFamily=Storage|regionCode=us-west-2|volumeApiName=gp3": {
+    "usd": "0.08",
+    "unit": "GB-Mo",
+    "sku": "BB8UJWJ4XPFJB95G",
+    "description": "$0.08 per GB-month of General Purpose (gp3) provisioned storage - US West (Oregon)",
+    "fetched_at": "2026-11-07T06:13:39.929184Z"
+  },
+  "AmazonEKS|operation=CreateOperation|regionCode=us-east-1|usagetype~AmazonEKS-Hours:perCluster": {
+    "usd": "0.1",
+    "unit": "Hours",
+    "sku": "ZYWMR684YSMFHWEU",
+    "description": "Amazon EKS cluster usage in US East (N. Virginia)",
+    "fetched_at": "2026-11-07T06:13:38.717017Z"
+  },
+  "AmazonEKS|operation=ExtendedSupport|regionCode=us-east-1|usagetype~AmazonEKS-Hours:extendedSupport": {
+    "usd": "0.5",
+    "unit": "hours",
+    "sku": "M7977BSVFGDUJZ67",
+    "description": "Amazon EKS extended support usage in US East (N. Virginia)",
+    "fetched_at": "2026-11-07T06:13:36.612704Z"
+  },
+  "AmazonRDS|databaseEngine=MySQL|deploymentOption=Single-AZ|instanceType=db.t4g.micro|regionCode=us-east-1|usagetype~InstanceUsage:db.t4g.micro": {
+    "usd": "0.016",
+    "unit": "Hrs",
+    "sku": "U4AUM7WC9VCSGAY9",
+    "description": "$ 0.016 per RDS db.t4g.micro Single-AZ instance hour (or partial hour) running MySQL",
+    "fetched_at": "2026-11-07T06:13:38.790766Z"
+  },
+  "AmazonRDS|databaseEngine=MySQL|deploymentOption=Single-AZ|productFamily=Database Storage|regionCode=us-east-1|volumeType=General Purpose": {
+    "usd": "0.115",
+    "unit": "GB-Mo",
+    "sku": "98Z3EQYU8MDZUWHX",
+    "description": "$0.115 per GB-month of provisioned gp2 storage running MySQL",
+    "fetched_at": "2026-11-07T06:13:38.863132Z"
+  },
+  "AmazonRDS|databaseEngine=PostgreSQL|deploymentOption=Multi-AZ|groupDescription=RDS Provisioned GP3 IOPS|productFamily=Provisioned IOPS|regionCode=us-east-1": {
+    "usd": "0.04",
+    "unit": "IOPS-Mo",
+    "sku": "G5WJFKG4RSD746YK",
+    "description": "$0.04 per IOPS-month of provisioned GP3 IOPS for Multi-AZ deployments running PostgreSQL",
+    "fetched_at": "2026-11-07T06:13:39.088162Z"
+  },
+  "AmazonRDS|databaseEngine=PostgreSQL|deploymentOption=Multi-AZ|instanceType=db.m6g.large|regionCode=us-east-1|usagetype~Multi-AZUsage:db.m6g.large": {
+    "usd": "0.318",
+    "unit": "Hrs",
+    "sku": "NJ4C3CCTCGCS8CGK",
+    "description": "$ 0.318 per RDS db.m6g.large Multi-AZ instance hour (or partial hour) running PostgreSQL",
+    "fetched_at": "2026-11-07T06:13:38.942069Z"
+  },
+  "AmazonRDS|databaseEngine=PostgreSQL|deploymentOption=Multi-AZ|productFamily=Database Storage|regionCode=us-east-1|volumeType=General Purpose-GP3": {
+    "usd": "0.23",
+    "unit": "GB-Mo",
+    "sku": "J7S7KD4WFDNQWKNX",
+    "description": "$0.23 per GB-month of provisioned GP3 storage for Multi-AZ deployments running PostgreSQL",
+    "fetched_at": "2026-11-07T06:13:39.015106Z"
+  }
+}
