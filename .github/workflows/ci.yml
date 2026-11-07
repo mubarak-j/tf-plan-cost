@@ -37,6 +37,11 @@ jobs:
       - uses: golangci/golangci-lint-action@v8
         with:
           version: v2.14.0
+      - name: YAML files parse (action.yml, workflows, examples)
+        run: |
+          git ls-files '*.yml' '*.yaml' | while read -r f; do
+            ruby -ryaml -e 'YAML.load_file(ARGV[0])' "$f" || { echo "::error file=$f::invalid YAML"; exit 1; }
+          done
 
   docker:
     runs-on: ubuntu-latest

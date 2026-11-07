@@ -1,0 +1,43 @@
+# Comment the monthly AWS cost change of Terraform pull requests.
+# Copy to .github/workflows/ in your repository and adjust the paths.
+name: Terraform cost
+
+on:
+  pull_request:
+    paths:
+      - "**.tf"
+      - "**.tfvars"
+      - ".tf-plan-cost.yml"
+
+permissions:
+  contents: read
+  pull-requests: write # create/update the cost comment
+  id-token: write      # OIDC: assume AWS roles without stored keys
+
+jobs:
+  cost:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra # your Terraform root
+    steps:
+      - uses: actions/checkout@v5
+
+      # Credentials your plan already needs (state backend, data sources).
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ vars.TERRAFORM_PLAN_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform init -input=false
+      - run: terraform plan -input=false -out=tfplan
+      - run: terraform show -json tfplan > plan.json
+
+      # Pricing only needs pricing:GetProducts. If your plan role can't call it,
+      # switch to the role from examples/aws-oidc-role before this step.
+      - uses: mubarak-j/tf-plan-cost@main # pin to @v1 once released
+        with:
+          plan: infra/plan.json
+          # comment-id: prod        # one comment per root in a monorepo
+          # config: .tf-plan-cost.yml

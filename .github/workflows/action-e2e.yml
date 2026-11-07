@@ -1,0 +1,63 @@
+# Runs this repository's action (uses: ./) against a fixture plan with real
+# AWS prices, then checks it updated a single comment instead of adding more.
+name: Action e2e
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+concurrency:
+  group: action-e2e-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    # Fork PRs get no OIDC token or write access; the role variable must exist.
+    if: github.event.pull_request.head.repo.full_name == github.repository && vars.AWS_PRICING_ROLE_ARN != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ vars.AWS_PRICING_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Run the action
+        id: cost
+        uses: ./
+        with:
+          plan: testdata/plans/update.json
+          comment-id: e2e
+          config: examples/.tf-plan-cost.yml
+
+      - name: Run it again (must update, not duplicate)
+        id: again
+        uses: ./
+        with:
+          plan: testdata/plans/update.json
+          comment-id: e2e
+          config: examples/.tf-plan-cost.yml
+
+      - name: Check outputs and comment count
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DELTA: ${{ steps.cost.outputs.delta-monthly-usd }}
+          EXCEEDED: ${{ steps.cost.outputs.exceeded }}
+          URL1: ${{ steps.cost.outputs.comment-url }}
+          URL2: ${{ steps.again.outputs.comment-url }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          echo "delta=$DELTA exceeded=$EXCEEDED url=$URL1"
+          [[ "$DELTA" =~ ^[0-9]+\.[0-9]{2}$ ]] || { echo "unexpected delta: $DELTA"; exit 1; }
+          [ "$EXCEEDED" = "false" ] || { echo "the fixture is below the 500 USD example limit"; exit 1; }
+          [ -n "$URL1" ] && [ "$URL1" = "$URL2" ] || { echo "second run should update the same comment"; exit 1; }
+          # --paginate prints one JSON array per page; slurp and merge them.
+          count=$(gh api --paginate "repos/${{ github.repository }}/issues/$PR/comments" |
+            jq -s 'add // [] | map(select(.body | startswith("<!-- tf-plan-cost:e2e -->"))) | length')
+          [ "$count" = "1" ] || { echo "expected 1 e2e comment, found $count"; exit 1; }

@@ -12,12 +12,49 @@ import (
 	"github.com/mubarak-j/tf-plan-cost/internal/pricing"
 )
 
-// Marker is a hidden HTML comment that identifies tf-plan-cost's PR comment,
-// so later runs can update it instead of posting a new one.
-const Marker = "<!-- tf-plan-cost -->"
+// DefaultCommentID is the comment id used when a repository has a single
+// Terraform root.
+const DefaultCommentID = "default"
+
+// Marker returns the hidden HTML comment that starts tf-plan-cost's PR
+// comment for a given comment id, so later runs update that comment instead
+// of posting a new one. Each Terraform root in a monorepo can use its own id.
+// The id must be valid per ValidCommentID.
+func Marker(commentID string) string {
+	if commentID == "" || commentID == DefaultCommentID {
+		return "<!-- tf-plan-cost -->"
+	}
+	return "<!-- tf-plan-cost:" + commentID + " -->"
+}
+
+// ValidCommentID reports whether id is safe to embed in an HTML comment:
+// 1-64 characters from [A-Za-z0-9._/-].
+func ValidCommentID(id string) bool {
+	if id == "" || len(id) > 64 {
+		return false
+	}
+	for _, c := range id {
+		ok := c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' ||
+			c == '.' || c == '_' || c == '/' || c == '-'
+		if !ok {
+			return false
+		}
+	}
+	return !strings.Contains(id, "--")
+}
+
+// Options customize the Markdown output.
+type Options struct {
+	// CommentID selects the hidden marker (see Marker).
+	CommentID string
+	// FailAbove is the monthly increase limit, if one is configured.
+	FailAbove *decimal.Decimal
+	// LimitSource names where the limit came from, e.g. ".tf-plan-cost.yml".
+	LimitSource string
+}
 
 // Markdown writes the report as a GitHub-flavored Markdown PR comment.
-func Markdown(w io.Writer, r *pricing.Report) error {
+func Markdown(w io.Writer, r *pricing.Report, opts Options) error {
 	var b strings.Builder
 	changed := r.Changed()
 	var unchangedCount int
@@ -41,12 +78,25 @@ func Markdown(w io.Writer, r *pricing.Report) error {
 	}
 	notPriced := append(append([]pricing.UnpricedResource{}, changedUnpriced...), r.Unsupported...)
 
-	b.WriteString(Marker + "\n")
-	if len(changed) == 0 && len(notPriced) == 0 {
+	b.WriteString(Marker(opts.CommentID) + "\n")
+	if !r.HasChanges() {
 		fmt.Fprintf(&b, "### tf-plan-cost: no cost change\n\nEstimated total: %s/mo\n", usd(r.TotalAfter, false))
 	} else {
 		fmt.Fprintf(&b, "### tf-plan-cost: **%s/mo** (was %s → now %s)\n",
 			usd(r.Delta, true), usd(r.TotalBefore, false), usd(r.TotalAfter, false))
+	}
+
+	if opts.FailAbove != nil {
+		source := "the tf-plan-cost config"
+		if opts.LimitSource != "" {
+			source = "`" + opts.LimitSource + "`"
+		}
+		if r.Delta.GreaterThan(*opts.FailAbove) {
+			fmt.Fprintf(&b, "\n> [!CAUTION]\n> This change adds **%s/mo**, which is above the limit of **%s/mo** set in %s.\n",
+				usd(r.Delta, true), usd(*opts.FailAbove, false), source)
+		} else {
+			fmt.Fprintf(&b, "\nWithin the %s/mo limit set in %s.\n", usd(*opts.FailAbove, false), source)
+		}
 	}
 
 	if len(changedUnpriced) > 0 {

@@ -1,0 +1,110 @@
+name: tf-plan-cost
+description: Comment the estimated monthly AWS cost change of a Terraform plan on pull requests.
+author: mubarak-j
+branding:
+  icon: dollar-sign
+  color: green
+
+inputs:
+  plan:
+    description: Path to the JSON plan from `terraform show -json tfplan`.
+    required: true
+  region:
+    description: AWS region for resources whose region is not in the plan. Defaults to AWS_REGION.
+    required: false
+    default: ""
+  comment:
+    description: Create or update a pull request comment.
+    required: false
+    default: "true"
+  comment-id:
+    description: Separate comment per Terraform root, for example `prod` or `envs/staging`.
+    required: false
+    default: default
+  comment-on-no-change:
+    description: Post a comment even when no resources change (an earlier comment is always updated).
+    required: false
+    default: "false"
+  config:
+    description: Config file with `fail_above_monthly_usd`. Optional; a missing file means no limit.
+    required: false
+    default: .tf-plan-cost.yml
+  github-token:
+    description: 'Token used to comment. Needs `pull-requests: write`.'
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  delta-monthly-usd:
+    description: Monthly cost change in USD, e.g. 242.24 or -16.43.
+    value: ${{ steps.report.outputs.delta-monthly-usd }}
+  total-before-monthly-usd:
+    description: Monthly cost of the priced resources before the change.
+    value: ${{ steps.report.outputs.total-before-monthly-usd }}
+  total-after-monthly-usd:
+    description: Monthly cost of the priced resources after the change.
+    value: ${{ steps.report.outputs.total-after-monthly-usd }}
+  exceeded:
+    description: "`true` if the increase is above `fail_above_monthly_usd` (the step then fails)."
+    value: ${{ steps.report.outputs.exceeded }}
+  comment-url:
+    description: URL of the created or updated comment, if any.
+    value: ${{ steps.report.outputs.comment-url }}
+
+runs:
+  using: composite
+  steps:
+    # Build from the action's own source so the binary matches the ref in
+    # `uses:`. Prefer the runner's Go (GOTOOLCHAIN=auto fetches the exact
+    # version) so the user's PATH is untouched; install Go only if missing.
+    - name: Check for Go
+      id: go
+      shell: bash
+      run: |
+        if command -v go >/dev/null 2>&1; then
+          echo "found=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "found=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Set up Go
+      if: steps.go.outputs.found != 'true'
+      uses: actions/setup-go@v6
+      with:
+        go-version-file: ${{ github.action_path }}/go.mod
+        cache-dependency-path: ${{ github.action_path }}/go.sum
+
+    - name: Build tf-plan-cost
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      env:
+        GOTOOLCHAIN: auto
+        GOFLAGS: -mod=readonly
+      run: go build -trimpath -o "$RUNNER_TEMP/tf-plan-cost/tf-plan-cost" ./cmd/tf-plan-cost
+
+    - name: Price the plan
+      shell: bash
+      env:
+        INPUT_PLAN: ${{ inputs.plan }}
+        INPUT_REGION: ${{ inputs.region }}
+      run: |
+        args=(diff --format json)
+        if [ -n "$INPUT_REGION" ]; then args+=(--region "$INPUT_REGION"); fi
+        "$RUNNER_TEMP/tf-plan-cost/tf-plan-cost" "${args[@]}" "$INPUT_PLAN" > "$RUNNER_TEMP/tf-plan-cost/report.json"
+
+    - name: Comment and check the limit
+      id: report
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        INPUT_COMMENT: ${{ inputs.comment }}
+        INPUT_COMMENT_ID: ${{ inputs.comment-id }}
+        INPUT_COMMENT_ON_NO_CHANGE: ${{ inputs.comment-on-no-change }}
+        INPUT_CONFIG: ${{ inputs.config }}
+      run: |
+        "$RUNNER_TEMP/tf-plan-cost/tf-plan-cost" github-comment \
+          --report "$RUNNER_TEMP/tf-plan-cost/report.json" \
+          --comment="$INPUT_COMMENT" \
+          --comment-id "$INPUT_COMMENT_ID" \
+          --comment-on-no-change="$INPUT_COMMENT_ON_NO_CHANGE" \
+          --config "$INPUT_CONFIG"

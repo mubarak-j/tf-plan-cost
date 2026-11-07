@@ -60,6 +60,20 @@ func (r *Report) Changed() []LineItem {
 	return out
 }
 
+// HasChanges reports whether any resource is created, updated, deleted or
+// replaced, whether or not it could be priced.
+func (r *Report) HasChanges() bool {
+	if len(r.Changed()) > 0 || len(r.Unsupported) > 0 {
+		return true
+	}
+	for _, u := range r.Unpriced {
+		if u.Action != plan.NoOp {
+			return true
+		}
+	}
+	return false
+}
+
 // Estimator prices plans.
 type Estimator struct {
 	Client  PriceClient

@@ -24,9 +24,10 @@ const usage = `tf-plan-cost estimates the monthly AWS cost change of a Terraform
 Usage:
   terraform plan -out=tfplan && terraform show -json tfplan > plan.json
   tf-plan-cost diff [flags] plan.json     (use - to read from stdin)
+  tf-plan-cost github-comment --report report.json [flags]
   tf-plan-cost version
 
-Run 'tf-plan-cost diff -h' for flags.
+Run 'tf-plan-cost <command> -h' for flags.
 `
 
 func main() {
@@ -62,6 +63,8 @@ func run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.
 	switch args[0] {
 	case "diff":
 		return runDiff(ctx, args[1:], stdin, stdout, stderr, newClient)
+	case "github-comment":
+		return runGitHubComment(ctx, args[1:], stdout, stderr)
 	case "version", "--version":
 		fmt.Fprintln(stdout, "tf-plan-cost", version)
 		return 0
@@ -124,7 +127,7 @@ func runDiff(ctx context.Context, args []string, stdin io.Reader, stdout, stderr
 	if *format == "json" {
 		err = render.JSON(stdout, report)
 	} else {
-		err = render.Markdown(stdout, report)
+		err = render.Markdown(stdout, report, render.Options{})
 	}
 	if err != nil {
 		fmt.Fprintln(stderr, "error:", err)
