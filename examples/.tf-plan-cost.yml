@@ -1,0 +1,5 @@
+# Copy to the root of your repository as .tf-plan-cost.yml.
+
+# Fail the check when a pull request adds more than this many US dollars per
+# month. Cost decreases never fail. Remove the line to only comment.
+fail_above_monthly_usd: 500
