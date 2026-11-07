@@ -22,7 +22,7 @@ func est(summary, monthly string, notes ...string) *pricing.Estimate {
 func markdown(t *testing.T, r *pricing.Report) string {
 	t.Helper()
 	var b bytes.Buffer
-	if err := Markdown(&b, r); err != nil {
+	if err := Markdown(&b, r, Options{}); err != nil {
 		t.Fatal(err)
 	}
 	return b.String()
@@ -73,7 +73,7 @@ func TestMarkdownChanges(t *testing.T) {
 	}
 	got := markdown(t, r)
 	for _, want := range []string{
-		Marker + "\n### tf-plan-cost: **+$412.80/mo** (was $1,204.10 → now $1,616.90)\n",
+		Marker("") + "\n### tf-plan-cost: **+$412.80/mo** (was $1,204.10 → now $1,616.90)\n",
 		"> [!WARNING]\n> 1 changed resource could not be priced",
 		"| `aws_instance.api[0]` | ~ m6i.large → m6i.xlarge | $70.08 | $140.16 | +$70.08 |",
 		"| `aws_ebs_volume.data` | + gp3 500 GB | – | $40.00 | +$40.00 |",
@@ -140,5 +140,62 @@ func TestJSON(t *testing.T) {
 	item := got["items"].([]any)[0].(map[string]any)
 	if item["action"] != "create" || item["before"] != nil {
 		t.Errorf("item = %v", item)
+	}
+}
+
+func TestMarker(t *testing.T) {
+	tests := map[string]string{
+		"":             "<!-- tf-plan-cost -->",
+		"default":      "<!-- tf-plan-cost -->",
+		"prod":         "<!-- tf-plan-cost:prod -->",
+		"envs/staging": "<!-- tf-plan-cost:envs/staging -->",
+	}
+	for id, want := range tests {
+		if got := Marker(id); got != want {
+			t.Errorf("Marker(%q) = %q, want %q", id, got, want)
+		}
+	}
+}
+
+func TestValidCommentID(t *testing.T) {
+	for _, id := range []string{"default", "prod", "envs/us-east-1", "a.b_c"} {
+		if !ValidCommentID(id) {
+			t.Errorf("ValidCommentID(%q) = false, want true", id)
+		}
+	}
+	for _, id := range []string{"", "has space", "x-->", "a--b", "<b>", strings.Repeat("a", 65)} {
+		if ValidCommentID(id) {
+			t.Errorf("ValidCommentID(%q) = true, want false", id)
+		}
+	}
+}
+
+func TestMarkdownLimit(t *testing.T) {
+	limit := d("500")
+	r := &pricing.Report{
+		Items: []pricing.LineItem{{Address: "a", Action: plan.Create, After: est("x", "600"), Delta: d("600")}},
+		Delta: d("600"), TotalAfter: d("600"),
+	}
+	var b bytes.Buffer
+	if err := Markdown(&b, r, Options{CommentID: "prod", FailAbove: &limit, LimitSource: ".tf-plan-cost.yml"}); err != nil {
+		t.Fatal(err)
+	}
+	got := b.String()
+	for _, want := range []string{
+		"<!-- tf-plan-cost:prod -->\n",
+		"> [!CAUTION]\n> This change adds **+$600.00/mo**, which is above the limit of **$500.00/mo** set in `.tf-plan-cost.yml`.",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("missing %q in:\n%s", want, got)
+		}
+	}
+
+	r.Delta = d("-50")
+	b.Reset()
+	if err := Markdown(&b, r, Options{FailAbove: &limit}); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(b.String(), "Within the $500.00/mo limit set in the tf-plan-cost config.") {
+		t.Errorf("got:\n%s", b.String())
 	}
 }
