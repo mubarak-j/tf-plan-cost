@@ -1,0 +1,51 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.16.4",
+  "resource_changes": [
+    {
+      "address": "aws_db_instance.app",
+      "mode": "managed",
+      "type": "aws_db_instance",
+      "name": "app",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["delete", "create"],
+        "before": {"engine": "mysql", "instance_class": "db.t4g.micro", "multi_az": false, "storage_type": "gp2", "allocated_storage": 20, "iops": 0, "region": "us-east-1"},
+        "after": {"engine": "postgres", "instance_class": "db.m6g.large", "multi_az": true, "storage_type": "gp3", "allocated_storage": 500, "iops": 15000, "storage_throughput": 500, "region": "us-east-1"},
+        "after_unknown": {"id": true, "endpoint": true}
+      }
+    },
+    {
+      "address": "aws_instance.web",
+      "mode": "managed",
+      "type": "aws_instance",
+      "name": "web",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create", "delete"],
+        "before": {"instance_type": "m5.large", "tenancy": "default", "instance_market_options": [], "root_block_device": [{"volume_size": 8, "volume_type": "gp2", "iops": 100, "throughput": 0}], "ebs_block_device": [], "region": "us-east-1"},
+        "after": {"instance_type": "m6i.large", "tenancy": "dedicated", "region": "us-east-1"},
+        "after_unknown": {"instance_market_options": true, "root_block_device": true, "ebs_block_device": true, "id": true}
+      }
+    },
+    {
+      "address": "aws_ebs_volume.fast",
+      "mode": "managed",
+      "type": "aws_ebs_volume",
+      "name": "fast",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["delete", "create"],
+        "before": {"type": "io1", "size": 100, "iops": 5000, "region": "us-east-1"},
+        "after": {"type": "io2", "size": 200, "iops": 70000, "region": "us-east-1"},
+        "after_unknown": {"throughput": true, "id": true}
+      }
+    }
+  ],
+  "configuration": {
+    "provider_config": {
+      "aws": {"name": "aws", "full_name": "registry.terraform.io/hashicorp/aws", "expressions": {"region": {"constant_value": "us-east-1"}}}
+    },
+    "root_module": {}
+  }
+}

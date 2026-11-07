@@ -1,0 +1,112 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.16.4",
+  "resource_changes": [
+    {
+      "address": "aws_instance.api[0]",
+      "mode": "managed",
+      "type": "aws_instance",
+      "name": "api",
+      "index": 0,
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["update"],
+        "before": {
+          "instance_type": "m6i.large",
+          "tenancy": "default",
+          "instance_market_options": [],
+          "root_block_device": [{"device_name": "/dev/xvda", "volume_size": 30, "volume_type": "gp3", "iops": 3000, "throughput": 125}],
+          "ebs_block_device": []
+        },
+        "after": {
+          "instance_type": "m6i.xlarge",
+          "tenancy": "default",
+          "instance_market_options": [],
+          "root_block_device": [{"device_name": "/dev/xvda", "volume_size": 30, "volume_type": "gp3", "iops": 3000, "throughput": 125}],
+          "ebs_block_device": []
+        },
+        "after_unknown": {"root_block_device": [{}]}
+      }
+    },
+    {
+      "address": "aws_ebs_volume.data",
+      "mode": "managed",
+      "type": "aws_ebs_volume",
+      "name": "data",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["update"],
+        "before": {"type": "gp3", "size": 100, "iops": 3000, "throughput": 125},
+        "after": {"type": "gp3", "size": 500, "iops": 3000, "throughput": 125},
+        "after_unknown": {}
+      }
+    },
+    {
+      "address": "aws_eks_node_group.default",
+      "mode": "managed",
+      "type": "aws_eks_node_group",
+      "name": "default",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["update"],
+        "before": {"capacity_type": "ON_DEMAND", "ami_type": "AL2023_x86_64_STANDARD", "instance_types": ["m6i.large", "m5.large"], "scaling_config": [{"desired_size": 3, "max_size": 6, "min_size": 1}]},
+        "after": {"capacity_type": "ON_DEMAND", "ami_type": "AL2023_x86_64_STANDARD", "instance_types": ["m6i.large", "m5.large"], "scaling_config": [{"desired_size": 5, "max_size": 6, "min_size": 1}]},
+        "after_unknown": {}
+      }
+    },
+    {
+      "address": "aws_nat_gateway.main",
+      "mode": "managed",
+      "type": "aws_nat_gateway",
+      "name": "main",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["no-op"],
+        "before": {"connectivity_type": "public", "availability_mode": "zonal"},
+        "after": {"connectivity_type": "public", "availability_mode": "zonal"},
+        "after_unknown": {}
+      }
+    },
+    {
+      "address": "aws_s3_bucket.logs",
+      "mode": "managed",
+      "type": "aws_s3_bucket",
+      "name": "logs",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["update"],
+        "before": {"bucket": "logs-example", "tags": {}},
+        "after": {"bucket": "logs-example", "tags": {"team": "platform"}},
+        "after_unknown": {}
+      }
+    },
+    {
+      "address": "aws_iam_role.app",
+      "mode": "managed",
+      "type": "aws_iam_role",
+      "name": "app",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["no-op"],
+        "before": {"name": "app"},
+        "after": {"name": "app"},
+        "after_unknown": {}
+      }
+    }
+  ],
+  "configuration": {
+    "provider_config": {
+      "aws": {"name": "aws", "full_name": "registry.terraform.io/hashicorp/aws", "expressions": {"region": {"constant_value": "us-east-1"}}}
+    },
+    "root_module": {
+      "resources": [
+        {"address": "aws_instance.api", "mode": "managed", "type": "aws_instance", "name": "api", "provider_config_key": "aws"},
+        {"address": "aws_ebs_volume.data", "mode": "managed", "type": "aws_ebs_volume", "name": "data", "provider_config_key": "aws"},
+        {"address": "aws_eks_node_group.default", "mode": "managed", "type": "aws_eks_node_group", "name": "default", "provider_config_key": "aws"},
+        {"address": "aws_nat_gateway.main", "mode": "managed", "type": "aws_nat_gateway", "name": "main", "provider_config_key": "aws"},
+        {"address": "aws_s3_bucket.logs", "mode": "managed", "type": "aws_s3_bucket", "name": "logs", "provider_config_key": "aws"},
+        {"address": "aws_iam_role.app", "mode": "managed", "type": "aws_iam_role", "name": "app", "provider_config_key": "aws"}
+      ]
+    }
+  }
+}
