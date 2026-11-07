@@ -122,7 +122,7 @@ The comment still posts and shows a caution. Decreases never fail. Unknown keys 
 go install github.com/mubarak-j/tf-plan-cost/cmd/tf-plan-cost@latest
 ```
 
-While the repository is private, set `GOPRIVATE=github.com/mubarak-j/*`, or clone it and run `go build ./cmd/tf-plan-cost`.
+Or clone the repository and run `go build ./cmd/tf-plan-cost`.
 
 **Container image:**
 
