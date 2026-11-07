@@ -31,3 +31,19 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+tfplan
+*.tfplan
+
+# Build output
+/dist/
+/tf-plan-cost
+
+# Local env files (keep the example)
+.env.*
+!.env.example

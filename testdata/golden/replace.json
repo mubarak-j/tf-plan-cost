@@ -1,0 +1,137 @@
+{
+  "items": [
+    {
+      "address": "aws_ebs_volume.fast",
+      "type": "aws_ebs_volume",
+      "action": "replace",
+      "before": {
+        "monthly_usd": "337.5",
+        "summary": "io1 100 GB",
+        "components": [
+          {
+            "name": "storage",
+            "monthly_usd": "12.5",
+            "detail": "io1 100 GB @ $0.125/GB-mo"
+          },
+          {
+            "name": "storage IOPS",
+            "monthly_usd": "325",
+            "detail": "provisioned 5000 IOPS @ $0.065/IOPS-mo"
+          }
+        ]
+      },
+      "after": {
+        "monthly_usd": "3752.1",
+        "summary": "io2 200 GB",
+        "components": [
+          {
+            "name": "storage",
+            "monthly_usd": "25",
+            "detail": "io2 200 GB @ $0.125/GB-mo"
+          },
+          {
+            "name": "storage IOPS",
+            "monthly_usd": "2080",
+            "detail": "tier 1 32000 IOPS @ $0.065/IOPS-mo"
+          },
+          {
+            "name": "storage IOPS",
+            "monthly_usd": "1456",
+            "detail": "tier 2 32000 IOPS @ $0.0455/IOPS-mo"
+          },
+          {
+            "name": "storage IOPS",
+            "monthly_usd": "191.1",
+            "detail": "tier 3 6000 IOPS @ $0.03185/IOPS-mo"
+          }
+        ]
+      },
+      "delta_monthly_usd": "3414.6"
+    },
+    {
+      "address": "aws_db_instance.app",
+      "type": "aws_db_instance",
+      "action": "replace",
+      "before": {
+        "monthly_usd": "13.98",
+        "summary": "db.t4g.micro MySQL, gp2 20 GB",
+        "components": [
+          {
+            "name": "instance",
+            "monthly_usd": "11.68",
+            "detail": "db.t4g.micro MySQL Single-AZ @ $0.016/hr"
+          },
+          {
+            "name": "storage",
+            "monthly_usd": "2.3",
+            "detail": "gp2 20 GB @ $0.115/GB-mo"
+          }
+        ]
+      },
+      "after": {
+        "monthly_usd": "467.14",
+        "summary": "db.m6g.large PostgreSQL Multi-AZ, gp3 500 GB",
+        "components": [
+          {
+            "name": "instance",
+            "monthly_usd": "232.14",
+            "detail": "db.m6g.large PostgreSQL Multi-AZ @ $0.318/hr"
+          },
+          {
+            "name": "storage",
+            "monthly_usd": "115",
+            "detail": "gp3 500 GB @ $0.23/GB-mo"
+          },
+          {
+            "name": "storage IOPS",
+            "monthly_usd": "120",
+            "detail": "extra 3000 IOPS @ $0.04/IOPS-mo"
+          }
+        ]
+      },
+      "delta_monthly_usd": "453.16"
+    },
+    {
+      "address": "aws_instance.web",
+      "type": "aws_instance",
+      "action": "replace",
+      "before": {
+        "monthly_usd": "70.88",
+        "summary": "m5.large",
+        "components": [
+          {
+            "name": "compute",
+            "monthly_usd": "70.08",
+            "detail": "m5.large on-demand Linux @ $0.096/hr"
+          },
+          {
+            "name": "root volume",
+            "monthly_usd": "0.8",
+            "detail": "gp2 8 GB @ $0.10/GB-mo"
+          }
+        ]
+      },
+      "after": {
+        "monthly_usd": "77.088",
+        "summary": "m6i.large",
+        "components": [
+          {
+            "name": "compute",
+            "monthly_usd": "77.088",
+            "detail": "m6i.large on-demand Linux @ $0.1056/hr"
+          }
+        ],
+        "notes": [
+          "root volume not priced: root_block_device is known only after apply"
+        ]
+      },
+      "delta_monthly_usd": "6.208"
+    }
+  ],
+  "unpriced": [],
+  "unsupported": [],
+  "total_before_monthly_usd": "422.36",
+  "total_after_monthly_usd": "4296.328",
+  "delta_monthly_usd": "3873.968",
+  "prices_as_of": "2026-11-07T06:13:38.790766Z"
+}

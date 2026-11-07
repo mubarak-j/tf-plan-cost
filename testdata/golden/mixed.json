@@ -1,0 +1,113 @@
+{
+  "items": [
+    {
+      "address": "module.app[\"blue\"].aws_instance.api[0]",
+      "type": "aws_instance",
+      "action": "create",
+      "after": {
+        "monthly_usd": "71.68",
+        "summary": "m6i.large",
+        "components": [
+          {
+            "name": "compute",
+            "monthly_usd": "70.08",
+            "detail": "m6i.large on-demand Linux @ $0.096/hr"
+          },
+          {
+            "name": "root volume",
+            "monthly_usd": "1.6",
+            "detail": "gp3 20 GB @ $0.08/GB-mo"
+          }
+        ]
+      },
+      "delta_monthly_usd": "71.68"
+    },
+    {
+      "address": "aws_ebs_volume.data",
+      "type": "aws_ebs_volume",
+      "action": "create",
+      "after": {
+        "monthly_usd": "40",
+        "summary": "gp3 500 GB",
+        "components": [
+          {
+            "name": "storage",
+            "monthly_usd": "40",
+            "detail": "gp3 500 GB @ $0.08/GB-mo"
+          }
+        ]
+      },
+      "delta_monthly_usd": "40"
+    },
+    {
+      "address": "aws_instance.bastion",
+      "type": "aws_instance",
+      "action": "no-op",
+      "before": {
+        "monthly_usd": "8.232",
+        "summary": "t3.micro",
+        "components": [
+          {
+            "name": "compute",
+            "monthly_usd": "7.592",
+            "detail": "t3.micro on-demand Linux @ $0.0104/hr"
+          },
+          {
+            "name": "root volume",
+            "monthly_usd": "0.64",
+            "detail": "gp3 8 GB @ $0.08/GB-mo"
+          }
+        ]
+      },
+      "after": {
+        "monthly_usd": "8.232",
+        "summary": "t3.micro",
+        "components": [
+          {
+            "name": "compute",
+            "monthly_usd": "7.592",
+            "detail": "t3.micro on-demand Linux @ $0.0104/hr"
+          },
+          {
+            "name": "root volume",
+            "monthly_usd": "0.64",
+            "detail": "gp3 8 GB @ $0.08/GB-mo"
+          }
+        ]
+      },
+      "delta_monthly_usd": "0"
+    }
+  ],
+  "unpriced": [
+    {
+      "address": "aws_instance.spot",
+      "type": "aws_instance",
+      "action": "create",
+      "reason": "spot instances are not priced (on-demand only)"
+    },
+    {
+      "address": "aws_instance.dynamic",
+      "type": "aws_instance",
+      "action": "create",
+      "reason": "instance_type is known only after apply"
+    },
+    {
+      "address": "aws_db_instance.legacy",
+      "type": "aws_db_instance",
+      "action": "create",
+      "reason": "engine \"oracle-ee\" is not supported yet (supported: postgres, mysql, mariadb)"
+    }
+  ],
+  "unsupported": [
+    {
+      "address": "aws_sqs_queue.jobs",
+      "type": "aws_sqs_queue",
+      "action": "create",
+      "reason": "resource type not supported yet"
+    }
+  ],
+  "total_before_monthly_usd": "8.232",
+  "total_after_monthly_usd": "119.912",
+  "delta_monthly_usd": "111.68",
+  "prices_as_of": "2026-11-07T06:13:39.849613Z"
+}

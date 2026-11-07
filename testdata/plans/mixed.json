@@ -1,0 +1,140 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.16.4",
+  "variables": {
+    "region": {"value": "us-east-1"}
+  },
+  "resource_changes": [
+    {
+      "address": "data.aws_ami.al2023",
+      "mode": "data",
+      "type": "aws_ami",
+      "name": "al2023",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {"actions": ["read"], "before": null, "after": {}, "after_unknown": {"id": true}}
+    },
+    {
+      "address": "module.app[\"blue\"].aws_instance.api[0]",
+      "module_address": "module.app[\"blue\"]",
+      "mode": "managed",
+      "type": "aws_instance",
+      "name": "api",
+      "index": 0,
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {"instance_type": "m6i.large", "root_block_device": [{"volume_size": 20, "volume_type": "gp3"}]},
+        "after_unknown": {"tenancy": true, "instance_market_options": true, "ebs_block_device": true, "root_block_device": [{"iops": true, "throughput": true, "volume_id": true}], "id": true}
+      }
+    },
+    {
+      "address": "aws_ebs_volume.data",
+      "mode": "managed",
+      "type": "aws_ebs_volume",
+      "name": "data",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {"type": "gp3", "size": 500},
+        "after_unknown": {"iops": true, "throughput": true, "id": true}
+      }
+    },
+    {
+      "address": "aws_instance.spot",
+      "mode": "managed",
+      "type": "aws_instance",
+      "name": "spot",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {"instance_type": "c6i.large", "instance_market_options": [{"market_type": "spot"}]},
+        "after_unknown": {"id": true}
+      }
+    },
+    {
+      "address": "aws_instance.dynamic",
+      "mode": "managed",
+      "type": "aws_instance",
+      "name": "dynamic",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {},
+        "after_unknown": {"instance_type": true, "id": true}
+      }
+    },
+    {
+      "address": "aws_db_instance.legacy",
+      "mode": "managed",
+      "type": "aws_db_instance",
+      "name": "legacy",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {"engine": "oracle-ee", "instance_class": "db.m6i.large", "allocated_storage": 100, "storage_type": "gp3"},
+        "after_unknown": {"id": true}
+      }
+    },
+    {
+      "address": "aws_instance.bastion",
+      "mode": "managed",
+      "type": "aws_instance",
+      "name": "bastion",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["no-op"],
+        "before": {"instance_type": "t3.micro", "tenancy": "default", "instance_market_options": [], "root_block_device": [{"volume_size": 8, "volume_type": "gp3", "iops": 3000, "throughput": 125}], "ebs_block_device": []},
+        "after": {"instance_type": "t3.micro", "tenancy": "default", "instance_market_options": [], "root_block_device": [{"volume_size": 8, "volume_type": "gp3", "iops": 3000, "throughput": 125}], "ebs_block_device": []},
+        "after_unknown": {}
+      }
+    },
+    {
+      "address": "aws_instance.old",
+      "mode": "managed",
+      "type": "aws_instance",
+      "name": "old",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["forget"],
+        "before": {"instance_type": "m5.large"},
+        "after": null,
+        "after_unknown": {}
+      }
+    },
+    {
+      "address": "aws_sqs_queue.jobs",
+      "mode": "managed",
+      "type": "aws_sqs_queue",
+      "name": "jobs",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {"actions": ["create"], "before": null, "after": {"name": "jobs"}, "after_unknown": {"arn": true}}
+    }
+  ],
+  "configuration": {
+    "provider_config": {
+      "aws": {"name": "aws", "full_name": "registry.terraform.io/hashicorp/aws", "expressions": {"region": {"references": ["var.region"]}}},
+      "aws.west": {"name": "aws", "full_name": "registry.terraform.io/hashicorp/aws", "alias": "west", "expressions": {"region": {"constant_value": "us-west-2"}}}
+    },
+    "root_module": {
+      "resources": [
+        {"address": "aws_ebs_volume.data", "mode": "managed", "type": "aws_ebs_volume", "name": "data", "provider_config_key": "aws"},
+        {"address": "aws_instance.spot", "mode": "managed", "type": "aws_instance", "name": "spot", "provider_config_key": "aws"}
+      ],
+      "module_calls": {
+        "app": {
+          "source": "./modules/app",
+          "module": {
+            "resources": [
+              {"address": "aws_instance.api", "mode": "managed", "type": "aws_instance", "name": "api", "provider_config_key": "aws.west"}
+            ]
+          }
+        }
+      }
+    }
+  }
+}

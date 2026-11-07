@@ -1,0 +1,67 @@
+{
+  "items": [
+    {
+      "address": "aws_eks_cluster.old",
+      "type": "aws_eks_cluster",
+      "action": "delete",
+      "before": {
+        "monthly_usd": "73",
+        "summary": "EKS cluster v1.31",
+        "components": [
+          {
+            "name": "control plane",
+            "monthly_usd": "73",
+            "detail": "EKS cluster @ $0.10/hr"
+          }
+        ]
+      },
+      "delta_monthly_usd": "-73"
+    },
+    {
+      "address": "aws_nat_gateway.main",
+      "type": "aws_nat_gateway",
+      "action": "delete",
+      "before": {
+        "monthly_usd": "32.85",
+        "summary": "NAT gateway (public)",
+        "components": [
+          {
+            "name": "gateway",
+            "monthly_usd": "32.85",
+            "detail": "NAT gateway @ $0.045/hr"
+          }
+        ],
+        "notes": [
+          "data processing at $0.045/GB not included"
+        ]
+      },
+      "delta_monthly_usd": "-32.85"
+    },
+    {
+      "address": "aws_lb.internal",
+      "type": "aws_lb",
+      "action": "delete",
+      "before": {
+        "monthly_usd": "16.425",
+        "summary": "Network Load Balancer",
+        "components": [
+          {
+            "name": "load balancer",
+            "monthly_usd": "16.425",
+            "detail": "Network Load Balancer @ $0.0225/hr"
+          }
+        ],
+        "notes": [
+          "capacity units (LCU) at $0.006/LCU-Hrs not included"
+        ]
+      },
+      "delta_monthly_usd": "-16.425"
+    }
+  ],
+  "unpriced": [],
+  "unsupported": [],
+  "total_before_monthly_usd": "122.275",
+  "total_after_monthly_usd": "0",
+  "delta_monthly_usd": "-122.275",
+  "prices_as_of": "2026-11-07T06:13:38.416111Z"
+}
