@@ -17,6 +17,18 @@ provider "aws" {
 
 locals {
   oidc_url = "https://token.actions.githubusercontent.com"
+
+  # GitHub's OIDC subject comes in two forms:
+  #   repo:mubarak-j/tf-plan-cost:pull_request                       (names)
+  #   repo:mubarak-j@83465122/tf-plan-cost@1449032169:pull_request   (names + immutable IDs)
+  # An entry with IDs trusts exactly that repository, even if the name is
+  # later reused by someone else. A name-only entry matches either form.
+  subject_patterns = flatten([
+    for repo in var.github_repositories : strcontains(repo, "@") ? ["repo:${repo}:*"] : [
+      "repo:${repo}:*",
+      "repo:${split("/", repo)[0]}@*/${split("/", repo)[1]}@*:*",
+    ]
+  ])
   oidc_provider_arn = var.create_oidc_provider ? aws_iam_openid_connect_provider.github[0].arn : (
     data.aws_iam_openid_connect_provider.github[0].arn
   )
@@ -51,7 +63,7 @@ data "aws_iam_policy_document" "trust" {
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = [for repo in var.github_repositories : "repo:${repo}:*"]
+      values   = local.subject_patterns
     }
   }
 }
