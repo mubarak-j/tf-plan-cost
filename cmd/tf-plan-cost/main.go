@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"syscall"
 
 	"github.com/mubarak-j/tf-plan-cost/internal/plan"
 	"github.com/mubarak-j/tf-plan-cost/internal/pricing"
@@ -26,13 +27,14 @@ Usage:
   tf-plan-cost diff [flags] plan.json     (use - to read from stdin)
   tf-plan-cost github-comment --report report.json [flags]
   tf-plan-cost strip [-o stripped.json] plan.json
+  tf-plan-cost serve                      (GitHub App server)
   tf-plan-cost version
 
 Run 'tf-plan-cost <command> -h' for flags.
 `
 
 func main() {
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	code := run(ctx, os.Args[1:], os.Stdin, os.Stdout, os.Stderr, newPriceClient)
 	stop()
 	os.Exit(code)
@@ -68,6 +70,8 @@ func run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.
 		return runGitHubComment(ctx, args[1:], stdout, stderr)
 	case "strip":
 		return runStrip(args[1:], stdin, stdout, stderr)
+	case "serve":
+		return runServe(ctx, args[1:], os.Getenv, stderr, newClient, nil)
 	case "version", "--version":
 		fmt.Fprintln(stdout, "tf-plan-cost", version)
 		return 0

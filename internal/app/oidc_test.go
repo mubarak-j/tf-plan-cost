@@ -4,12 +4,14 @@ import (
 	"context"
 	"testing"
 	"time"
+
+	"github.com/mubarak-j/tf-plan-cost/internal/app/oidctest"
 )
 
 func TestOIDCVerifier(t *testing.T) {
-	iss := newTestIssuer(t)
+	iss := oidctest.NewIssuer(t)
 	ctx := context.Background()
-	v := iss.Verifier(ctx, time.Now)
+	v := NewOIDCVerifier(ctx, OIDCConfig{Issuer: iss.URL})
 
 	good := iss.Claims()
 	claims, err := v.Verify(ctx, iss.Sign(t, good))
@@ -42,7 +44,7 @@ func TestOIDCVerifier(t *testing.T) {
 	}
 
 	t.Run("signed by another key", func(t *testing.T) {
-		other := newTestIssuer(t)
+		other := oidctest.NewIssuer(t)
 		c := other.Claims()
 		c["iss"] = iss.URL
 		if _, err := v.Verify(ctx, other.Sign(t, c)); err == nil {

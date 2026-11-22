@@ -16,8 +16,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
+	"github.com/mubarak-j/tf-plan-cost/internal/app/oidctest"
 	"github.com/mubarak-j/tf-plan-cost/internal/github"
 	"github.com/mubarak-j/tf-plan-cost/internal/github/githubtest"
 	"github.com/mubarak-j/tf-plan-cost/internal/plan"
@@ -39,7 +39,7 @@ const (
 type harness struct {
 	t      *testing.T
 	gh     *githubtest.Server
-	iss    *testIssuer
+	iss    *oidctest.Issuer
 	server *Server
 	http   *httptest.Server
 	logs   *bytes.Buffer
@@ -65,14 +65,14 @@ func newHarness(t *testing.T, prices pricing.PriceClient) *harness {
 		t.Fatal(err)
 	}
 
-	iss := newTestIssuer(t)
+	iss := oidctest.NewIssuer(t)
 	logs := &bytes.Buffer{}
 	s := &Server{
 		AppID:         testAppID,
 		BotLogin:      "tf-plan-cost[bot]",
 		WebhookSecret: []byte(testSecret),
 		GitHub:        ghApp,
-		Verifier:      iss.Verifier(t.Context(), time.Now),
+		Verifier:      NewOIDCVerifier(t.Context(), OIDCConfig{Issuer: iss.URL}),
 		Prices:        prices,
 		Logger:        slog.New(slog.NewTextHandler(logs, nil)),
 	}
