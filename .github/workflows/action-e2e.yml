@@ -1,5 +1,6 @@
 # Runs this repository's action (uses: ./) against a fixture plan with real
 # AWS prices, then checks it updated a single comment instead of adding more.
+# e2e uses action mode; app-e2e uses app mode against the deployed App.
 name: Action e2e
 
 on:
@@ -61,3 +62,64 @@ jobs:
           count=$(gh api --paginate "repos/${{ github.repository }}/issues/$PR/comments" |
             jq -s 'add // [] | map(select(.body | startswith("<!-- tf-plan-cost:e2e -->"))) | length')
           [ "$count" = "1" ] || { echo "expected 1 e2e comment, found $count"; exit 1; }
+
+  # Same, in app mode: the deployed tf-plan-cost App (deploy/aws) prices the
+  # plan with its own AWS role and posts a Check Run and the comment as
+  # tf-plan-cost[bot]. Needs the App installed on this repository and the
+  # TF_PLAN_COST_APP_URL repository variable.
+  app-e2e:
+    if: github.event.pull_request.head.repo.full_name == github.repository && vars.TF_PLAN_COST_APP_URL != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write    # the OIDC token the App verifies
+      checks: read       # for the assertions below
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Run the action in app mode
+        id: cost
+        uses: ./
+        with:
+          plan: testdata/plans/update.json
+          mode: app
+          app-url: ${{ vars.TF_PLAN_COST_APP_URL }}
+          comment-id: e2e-app
+          config: examples/.tf-plan-cost.yml
+
+      - name: Run it again (must update, not duplicate)
+        id: again
+        uses: ./
+        with:
+          plan: testdata/plans/update.json
+          mode: app
+          app-url: ${{ vars.TF_PLAN_COST_APP_URL }}
+          comment-id: e2e-app
+          config: examples/.tf-plan-cost.yml
+
+      - name: Check outputs, check run and comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DELTA: ${{ steps.cost.outputs.delta-monthly-usd }}
+          EXCEEDED: ${{ steps.cost.outputs.exceeded }}
+          CHECK_URL: ${{ steps.cost.outputs.check-url }}
+          URL1: ${{ steps.cost.outputs.comment-url }}
+          URL2: ${{ steps.again.outputs.comment-url }}
+          PR: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          echo "delta=$DELTA exceeded=$EXCEEDED check=$CHECK_URL comment=$URL1"
+          [[ "$DELTA" =~ ^[0-9]+\.[0-9]{2}$ ]] || { echo "unexpected delta: $DELTA"; exit 1; }
+          [ "$EXCEEDED" = "false" ] || { echo "the fixture is below the 500 USD example limit"; exit 1; }
+          [ -n "$CHECK_URL" ] || { echo "no check run URL"; exit 1; }
+          [ -n "$URL1" ] && [ "$URL1" = "$URL2" ] || { echo "second run should update the same comment"; exit 1; }
+
+          conclusions=$(gh api "repos/${{ github.repository }}/commits/$HEAD_SHA/check-runs?check_name=tf-plan-cost%20%2F%20e2e-app" \
+            --jq '[.check_runs[] | select(.app.slug == "tf-plan-cost") | .conclusion] | unique | join(",")')
+          [ "$conclusions" = "success" ] || { echo "expected successful tf-plan-cost / e2e-app check runs, got '$conclusions'"; exit 1; }
+
+          count=$(gh api --paginate "repos/${{ github.repository }}/issues/$PR/comments" |
+            jq -s 'add // [] | map(select((.body | startswith("<!-- tf-plan-cost:e2e-app -->")) and .user.login == "tf-plan-cost[bot]")) | length')
+          [ "$count" = "1" ] || { echo "expected 1 app comment, found $count"; exit 1; }
