@@ -62,10 +62,13 @@ Set these to your own values first:
 
 ```sh
 export AWS_PROFILE=my-profile AWS_REGION=us-east-1
-APP_ID=123456                                                      # App ID from the App's General page
-KEY_FILE="$HOME/Downloads/tf-plan-cost.2026-01-31.private-key.pem" # absolute path to the downloaded key
-# WEBHOOK_SECRET is still set from step 1. If not, use the value you entered
-# in the App's webhook secret field.
+APP_ID=           # the App ID from the App's General page (a number; not the Client ID "Iv...")
+KEY_FILE=         # absolute path to the downloaded key, e.g. "$HOME/Downloads/tf-plan-cost.<date>.private-key.pem"
+# WEBHOOK_SECRET is still set from step 1. If not, set it to the value you
+# entered in the App's webhook secret field.
+
+# Stops here if a value is missing or the key file doesn't exist.
+[ -n "$APP_ID" ] && [ -f "$KEY_FILE" ] && [ -n "${WEBHOOK_SECRET:-}" ] || echo "set APP_ID, KEY_FILE and WEBHOOK_SECRET first"
 ```
 
 Then store them:
