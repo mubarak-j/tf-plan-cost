@@ -1,0 +1,33 @@
+# Copy to .github/workflows/tf-plan-cost.yml in the demo repository.
+# Needs the tf-plan-cost App installed on the repository. No AWS account or
+# secrets: the plan uses mock credentials and demo.tfstate, and the App
+# prices it.
+name: tf-plan-cost
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  id-token: write # proves to the App which repository the plan comes from
+
+jobs:
+  cost:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - run: terraform init -input=false
+
+      # -refresh=false: plan against demo.tfstate without calling AWS.
+      - run: terraform plan -input=false -lock=false -refresh=false -state=demo.tfstate -out=tfplan
+      - run: terraform show -json tfplan > plan.json
+
+      - uses: mubarak-j/tf-plan-cost@v1
+        with:
+          plan: plan.json
+          mode: app

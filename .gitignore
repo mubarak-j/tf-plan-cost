@@ -50,3 +50,6 @@ tfplan
 
 # GitHub App private keys
 *.pem
+
+# The demo's fake state (no real infrastructure; see examples/demo/README.md)
+!examples/demo/demo.tfstate
