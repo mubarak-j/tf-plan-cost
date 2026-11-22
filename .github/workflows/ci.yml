@@ -43,6 +43,26 @@ jobs:
             ruby -ryaml -e 'YAML.load_file(ARGV[0])' "$f" || { echo "::error file=$f::invalid YAML"; exit 1; }
           done
 
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+      - run: terraform fmt -check -recursive -diff
+      - name: Build the Lambda package
+        run: deploy/aws/build.sh
+      - name: Validate
+        run: |
+          for dir in deploy/aws examples/aws-oidc-role; do
+            terraform -chdir="$dir" init -backend=false -input=false
+            terraform -chdir="$dir" validate
+          done
+
   docker:
     runs-on: ubuntu-latest
     steps:
