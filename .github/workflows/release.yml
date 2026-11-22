@@ -2,6 +2,11 @@
 #   git tag v1.2.3 && git push origin v1.2.3
 # Builds linux/amd64 and linux/arm64 binaries with goreleaser, attests their
 # build provenance, and moves the major tag (v1) so `uses: ...@v1` gets it.
+#
+# GitHub only offers attestations for public repositories (and private ones
+# in organizations), so they are skipped while this repository is private.
+# A release can't be attested afterwards: the attestation names the run that
+# built the files, so attesting them from another run would be false.
 name: Release
 
 on:
@@ -43,6 +48,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
 
       - uses: actions/attest-build-provenance@v2
+        if: ${{ !github.event.repository.private }}
         with:
           subject-path: |
             dist/*.tar.gz
