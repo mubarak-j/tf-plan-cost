@@ -58,8 +58,11 @@ type Server struct {
 	*httptest.Server
 	t testing.TB
 
-	mu        sync.Mutex
-	AppSlug   string
+	mu      sync.Mutex
+	AppSlug string
+	// AppID is reported as the app of the check runs created through the
+	// fake.
+	AppID     int64
 	Repos     map[string]*Repo // keyed by owner/repo
 	CheckRuns []*CheckRun
 	Comments  []*Comment
@@ -221,6 +224,16 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		s.CheckRuns = append(s.CheckRuns, cr)
 		writeJSON(w, http.StatusCreated, s.checkJSON(cr))
 
+	case r.Method == http.MethodGet && len(rest) == 3 && rest[0] == "check-suites" && rest[2] == "check-runs":
+		// The fake has one check suite per repository: all its check runs.
+		var runs []map[string]any
+		for _, cr := range s.CheckRuns {
+			if cr.Repo == fullName {
+				runs = append(runs, s.checkJSON(cr))
+			}
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"total_count": len(runs), "check_runs": runs})
+
 	case r.Method == http.MethodPatch && len(rest) == 2 && rest[0] == "check-runs":
 		id, _ := strconv.ParseInt(rest[1], 10, 64)
 		for _, cr := range s.CheckRuns {
@@ -348,6 +361,7 @@ func (s *Server) checkJSON(cr *CheckRun) map[string]any {
 		"conclusion": cr.Conclusion, "external_id": cr.ExternalID, "details_url": cr.DetailsURL,
 		"html_url": fmt.Sprintf("https://github.com/%s/runs/%d", cr.Repo, cr.ID),
 		"output":   map[string]string{"title": cr.Output.Title, "summary": cr.Output.Summary},
+		"app":      map[string]int64{"id": s.AppID},
 	}
 }
 
