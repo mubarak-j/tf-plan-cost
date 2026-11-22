@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	gh "github.com/google/go-github/v93/github"
 
@@ -37,6 +38,9 @@ type Server struct {
 	Logger *slog.Logger
 	// MaxBodyBytes defaults to DefaultMaxBodyBytes.
 	MaxBodyBytes int64
+	// WebURL is GitHub's web root for links to workflow runs; default
+	// https://github.com.
+	WebURL string
 }
 
 // Handler returns the HTTP routes:
@@ -47,6 +51,7 @@ type Server struct {
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /webhook", s.handleWebhook)
+	mux.HandleFunc("POST /v1/plans", s.handlePlan)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		_, _ = w.Write([]byte("ok\n"))
@@ -66,6 +71,13 @@ func (s *Server) maxBody() int64 {
 		return s.MaxBodyBytes
 	}
 	return DefaultMaxBodyBytes
+}
+
+func (s *Server) webURL() string {
+	if s.WebURL != "" {
+		return strings.TrimSuffix(s.WebURL, "/")
+	}
+	return "https://github.com"
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

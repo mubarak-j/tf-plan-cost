@@ -13,11 +13,14 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/mubarak-j/tf-plan-cost/internal/github"
 	"github.com/mubarak-j/tf-plan-cost/internal/github/githubtest"
+	"github.com/mubarak-j/tf-plan-cost/internal/plan"
 	"github.com/mubarak-j/tf-plan-cost/internal/pricing"
 )
 
@@ -110,4 +113,14 @@ func (h *harness) webhook(event string, body []byte) (int, string) {
 		"X-GitHub-Event": event, "X-GitHub-Delivery": "d1", "X-Hub-Signature-256": sign(body),
 		"Content-Type": "application/json",
 	}, body)
+}
+
+func stripFixture(t *testing.T, path string, w io.Writer) error {
+	t.Helper()
+	f, err := os.Open(filepath.Join(testdata, path))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return plan.Strip(f, w)
 }

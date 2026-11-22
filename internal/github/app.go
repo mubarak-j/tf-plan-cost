@@ -122,10 +122,10 @@ func (a *App) RepoClient(ctx context.Context, owner, repo string, repoID int64) 
 }
 
 // IsNotFound reports whether err is an HTTP 404 from the GitHub API.
-func IsNotFound(err error) bool { return statusIs(err, http.StatusNotFound) }
+func IsNotFound(err error) bool { return IsStatus(err, http.StatusNotFound) }
 
 func isUnprocessable(err error) bool {
-	if statusIs(err, http.StatusUnprocessableEntity) {
+	if IsStatus(err, http.StatusUnprocessableEntity) {
 		return true
 	}
 	var he *ghinstallation.HTTPError
@@ -133,7 +133,8 @@ func isUnprocessable(err error) bool {
 		(he.Response.StatusCode == http.StatusUnprocessableEntity || he.Response.StatusCode == http.StatusNotFound)
 }
 
-func statusIs(err error, code int) bool {
+// IsStatus reports whether err is a GitHub API error with HTTP status code.
+func IsStatus(err error, code int) bool {
 	var er *gh.ErrorResponse
 	return errors.As(err, &er) && er.Response != nil && er.Response.StatusCode == code
 }

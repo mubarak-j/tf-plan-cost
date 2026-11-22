@@ -199,3 +199,23 @@ func TestMarkdownLimit(t *testing.T) {
 		t.Errorf("got:\n%s", b.String())
 	}
 }
+
+func TestHeadline(t *testing.T) {
+	changed := &pricing.Report{
+		Items: []pricing.LineItem{{Address: "aws_instance.a", Action: plan.Update, Delta: d("1242.235")}},
+		Delta: d("1242.235"),
+	}
+	if got := Headline(changed); got != "+$1,242.24/mo" {
+		t.Errorf("Headline(changed) = %q", got)
+	}
+	decrease := &pricing.Report{
+		Items: []pricing.LineItem{{Address: "aws_instance.a", Action: plan.Delete, Delta: d("-5")}},
+		Delta: d("-5"),
+	}
+	if got := Headline(decrease); got != "-$5.00/mo" {
+		t.Errorf("Headline(decrease) = %q", got)
+	}
+	if got := Headline(&pricing.Report{}); got != "No cost change" {
+		t.Errorf("Headline(empty) = %q", got)
+	}
+}
