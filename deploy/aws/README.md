@@ -46,7 +46,7 @@ WEBHOOK_SECRET=$(openssl rand -hex 32); echo "$WEBHOOK_SECRET"
 | Repository permissions → **Metadata** | Read-only (mandatory) |
 | Repository permissions → **Pull requests** | Read and write (for the comment) |
 | All other permissions | No access |
-| Subscribe to events | **Check run** only |
+| Subscribe to events | hidden while the webhook is inactive; you subscribe to **Check run** in step 4 |
 | Where can this GitHub App be installed? | **Only on this account** (switch to *Any account* when it goes public) |
 
 Click **Create GitHub App**. Then:
@@ -85,8 +85,9 @@ If `terraform apply` fails with *"Specified ReservedConcurrentExecutions ... dec
 ## 4. Turn on the webhook and install the App
 
 1. In the App's settings, set **Webhook URL** to the `webhook_url` output, check **Active** and save.
-2. Under **Advanced → Recent deliveries**, redeliver any delivery, or check that new ones get `200` or `204`. A `401` means the webhook secret in GitHub doesn't match SSM.
-3. Click **Install App**, choose your account, select **Only select repositories**, and pick the repositories to price.
+2. Under **Permissions & events → Subscribe to events**, check **Check run** only and save. The section only appears while the webhook is active, and the event only once Checks is *Read and write*.
+3. Under **Advanced → Recent deliveries**, redeliver any delivery, or check that new ones get `200` or `204`. A `401` means the webhook secret in GitHub doesn't match SSM.
+4. Click **Install App**, choose your account, select **Only select repositories**, and pick the repositories to price.
 
 ## 5. Use it
 
