@@ -51,7 +51,10 @@ WEBHOOK_SECRET=$(openssl rand -hex 32); echo "$WEBHOOK_SECRET"
 
 Click **Create GitHub App**. Then:
 1. Note the **App ID** at the top of the settings page.
-2. Under **Private keys**, click **Generate a private key**. A `.pem` file downloads.
+2. Go to **Credentials → Key pairs** (under **General → Private keys** on older layouts) and click **New key** (or **Generate a private key**). A `.pem` file downloads. To check it's the key GitHub shows, compare its SHA256 fingerprint with the one on that page:
+   ```sh
+   openssl pkey -in path/to/key.pem -pubout -outform DER | openssl dgst -sha256 -binary | base64
+   ```
 
 ## 2. Store the secrets in SSM
 
