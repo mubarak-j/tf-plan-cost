@@ -122,7 +122,7 @@ permissions:
 
 steps:
   - run: terraform show -json tfplan > plan.json
-  - uses: mubarak-j/tf-plan-cost@main
+  - uses: mubarak-j/tf-plan-cost@v1
     with:
       plan: plan.json
       mode: app

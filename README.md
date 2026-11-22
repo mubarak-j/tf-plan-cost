@@ -70,7 +70,7 @@ permissions:
 steps:
   # ... checkout, AWS credentials, terraform init/plan ...
   - run: terraform show -json tfplan > plan.json
-  - uses: mubarak-j/tf-plan-cost@main # pin to @v1 once released
+  - uses: mubarak-j/tf-plan-cost@v1
     with:
       plan: plan.json
 ```
@@ -114,7 +114,9 @@ The comment still posts and shows a caution. Decreases never fail. Unknown keys 
 - **No resource changes:** nothing is posted, unless an earlier comment exists. That comment is updated to "no cost change".
 
 **Notes:**
-- Until the first release, the action builds `tf-plan-cost` from source on each run. It uses the runner's Go when one is installed (any Go 1.21+ fetches the right version itself), so your `PATH` is unchanged. It installs Go only when none is present.
+- **Installing the binary:**
+  - With a release tag (`@v1`, `@v1.2.3`) on a Linux runner, the action downloads the matching release binary and checks it against the release's `checksums.txt`.
+  - With a branch or commit SHA (`@main`), or on macOS or Windows runners, it builds `tf-plan-cost` from source instead. It uses the runner's Go when one is installed (any Go 1.21+ fetches the right version itself), so your `PATH` is unchanged, and installs Go only when none is present.
 - On GitHub Enterprise Server, the API URL is read from `GITHUB_API_URL`.
 
 ## GitHub App (preview)
@@ -134,7 +136,7 @@ permissions:
 steps:
   # ... checkout, terraform init/plan ...
   - run: terraform show -json tfplan > plan.json
-  - uses: mubarak-j/tf-plan-cost@main
+  - uses: mubarak-j/tf-plan-cost@v1
     with:
       plan: plan.json
       mode: app
@@ -175,7 +177,21 @@ To host it yourself on AWS Lambda for about $0 a month, follow [`deploy/aws`](de
 
 ## Install
 
-**From source** (Go 1.27+):
+**Prebuilt binary** (Linux, amd64 or arm64), from [Releases](https://github.com/mubarak-j/tf-plan-cost/releases):
+
+```sh
+VERSION=1.0.0 ARCH=amd64   # or arm64
+curl -fsSLO "https://github.com/mubarak-j/tf-plan-cost/releases/download/v$VERSION/tf-plan-cost_${VERSION}_linux_$ARCH.tar.gz"
+tar -xzf "tf-plan-cost_${VERSION}_linux_$ARCH.tar.gz" tf-plan-cost
+```
+
+Each release has a `checksums.txt` and [build provenance attestations](https://docs.github.com/actions/security-for-github-actions/using-artifact-attestations). To check that an archive was built by this repository's release workflow:
+
+```sh
+gh attestation verify "tf-plan-cost_${VERSION}_linux_$ARCH.tar.gz" --repo mubarak-j/tf-plan-cost
+```
+
+**From source** (Go 1.27+, any OS, including macOS and Windows):
 
 ```sh
 go install github.com/mubarak-j/tf-plan-cost/cmd/tf-plan-cost@latest
@@ -190,8 +206,6 @@ docker build -t tf-plan-cost .
 ```
 
 The image is distroless (`static-debian12:nonroot`) and contains only the binary and CA certificates.
-
-Prebuilt binaries and a published image are planned for the first release.
 
 ## Usage
 

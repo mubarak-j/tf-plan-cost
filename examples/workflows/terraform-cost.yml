@@ -36,7 +36,7 @@ jobs:
 
       # Pricing only needs pricing:GetProducts. If your plan role can't call it,
       # switch to the role from examples/aws-oidc-role before this step.
-      - uses: mubarak-j/tf-plan-cost@main # pin to @v1 once released
+      - uses: mubarak-j/tf-plan-cost@v1
         with:
           plan: infra/plan.json
           # comment-id: prod        # one comment per root in a monorepo
