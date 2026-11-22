@@ -151,10 +151,10 @@ Prior state, outputs, other provider arguments (such as access keys) and unrelat
 **Behavior:**
 - **Pull requests only.** Push events are rejected. Pull requests from forks get no OIDC token, so they can't use app mode.
 - **Outdated runs.** If the PR has newer commits by the time a plan arrives, the check run is still added to the plan's commit, but the comment is left for the newer run.
-- **Re-run.** The App keeps no copy of the plan, so clicking *Re-run* on the check adds a link to the workflow run to re-run instead.
+- **Re-run.** The App keeps no copy of the plan. Clicking *Re-run* on the check, or *Re-run all checks* on its suite, adds a link to the workflow run to re-run instead.
 - **Outputs** are the same as action mode, plus `check-url`. The step itself doesn't fail on the limit; the check does.
 
-**App permissions:** Checks (read and write), Pull requests (read and write), Contents (read, for `.tf-plan-cost.yml`), Metadata (read). The App subscribes only to the `check_run` event.
+**App permissions:** Checks (read and write), Pull requests (read and write), Contents (read, for `.tf-plan-cost.yml`), Metadata (read). The App subscribes only to the `check_run` event. GitHub also sends it `check_suite` events, because it has the Checks permission.
 
 ### Running the App server
 

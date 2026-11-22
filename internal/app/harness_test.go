@@ -48,6 +48,7 @@ type harness struct {
 func newHarness(t *testing.T, prices pricing.PriceClient) *harness {
 	t.Helper()
 	fake := githubtest.NewServer(t)
+	fake.AppID = testAppID
 	fake.AddRepo("o/r", &githubtest.Repo{
 		ID: 42, Installation: 7,
 		PRs:     map[int]string{7: headSHA},

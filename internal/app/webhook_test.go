@@ -120,3 +120,50 @@ func TestWebhookCheckRunIgnored(t *testing.T) {
 		t.Errorf("invalid payload: status = %d, want 400", code)
 	}
 }
+
+func checkSuiteEvent(action string, appID int64) []byte {
+	return fmt.Appendf(nil, `{
+  "action": %q,
+  "check_suite": {"id": 9, "head_sha": "head-sha", "app": {"id": %d}},
+  "repository": {"id": 42, "name": "r", "full_name": "o/r", "owner": {"login": "o"}},
+  "installation": {"id": 7}
+}`, action, appID)
+}
+
+// "Re-run all checks" sends check_suite rerequested; every tf-plan-cost check
+// in the suite gets the hint.
+func TestWebhookCheckSuiteRerequested(t *testing.T) {
+	h := newHarness(t, nil)
+	client, err := h.server.GitHub.RepoClient(t.Context(), "o", "r", 42)
+	if err != nil {
+		t.Fatal(err)
+	}
+	checks := &github.Checks{Client: client, Owner: "o", Repo: "r"}
+	for _, name := range []string{"tf-plan-cost", "tf-plan-cost / prod"} {
+		if _, err := checks.Create(t.Context(), github.CheckRun{Name: name, HeadSHA: headSHA, Title: "+$1.00/mo", Summary: "report",
+			DetailsURL: "https://github.com/o/r/actions/runs/555"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if code, body := h.webhook("check_suite", checkSuiteEvent("rerequested", testAppID)); code != http.StatusNoContent {
+		t.Fatalf("status = %d %s", code, body)
+	}
+	for _, cr := range h.gh.Checks() {
+		if !strings.HasPrefix(cr.Output.Summary, "**To re-run") {
+			t.Errorf("%s: summary = %q", cr.Name, cr.Output.Summary)
+		}
+	}
+
+	for name, body := range map[string][]byte{
+		"completed":         checkSuiteEvent("completed", testAppID),
+		"other App's suite": checkSuiteEvent("rerequested", 999),
+	} {
+		if code, _ := h.webhook("check_suite", body); code != http.StatusNoContent {
+			t.Errorf("%s: status = %d, want 204", name, code)
+		}
+	}
+	if code, _ := h.webhook("check_suite", []byte(`not json`)); code != http.StatusBadRequest {
+		t.Errorf("invalid payload: status = %d, want 400", code)
+	}
+}

@@ -6,7 +6,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -15,9 +17,9 @@ import (
 	"github.com/mubarak-j/tf-plan-cost/internal/github"
 )
 
-// handleWebhook receives GitHub App webhooks. The App subscribes only to
-// check_run: Check Runs are created when a plan is uploaded, and the only
-// event that needs an answer is a user asking to re-run one.
+// handleWebhook receives GitHub App webhooks. Check Runs are created when a
+// plan is uploaded, so the only events that need an answer are a user asking
+// to re-run one check (check_run) or all of the App's checks (check_suite).
 func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, s.maxBody()))
 	var tooLarge *http.MaxBytesError
@@ -41,6 +43,7 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	case "ping":
 		writeJSON(w, http.StatusOK, map[string]string{"status": "pong"})
 	case "check_run":
+		// "Re-run" on a single tf-plan-cost check.
 		var ev gh.CheckRunEvent
 		if err := json.Unmarshal(body, &ev); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid check_run payload")
@@ -50,24 +53,65 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
+		s.rerunHints(w, r, log, ev.GetRepo(), func(*gh.Client) ([]*gh.CheckRun, error) {
+			return []*gh.CheckRun{ev.GetCheckRun()}, nil
+		})
+	case "check_suite":
+		// "Re-run all checks" on the App's check suite. GitHub sends this
+		// to every App with the Checks permission, without a subscription.
+		var ev gh.CheckSuiteEvent
+		if err := json.Unmarshal(body, &ev); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid check_suite payload")
+			return
+		}
+		if ev.GetAction() != "rerequested" || ev.GetCheckSuite().GetApp().GetID() != s.AppID {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
 		repo := ev.GetRepo()
-		client, err := s.GitHub.RepoClient(r.Context(), repo.GetOwner().GetLogin(), repo.GetName(), repo.GetID())
-		if err != nil {
-			log.Error("re-run: get installation client", "repo", repo.GetFullName(), "err", err)
-			writeError(w, http.StatusBadGateway, "GitHub API error")
-			return
-		}
-		checks := &github.Checks{Client: client, Owner: repo.GetOwner().GetLogin(), Repo: repo.GetName()}
-		if err := checks.AddRerunHint(r.Context(), ev.GetCheckRun()); err != nil {
-			log.Error("re-run: update check run", "repo", repo.GetFullName(), "err", err)
-			writeError(w, http.StatusBadGateway, "GitHub API error")
-			return
-		}
-		log.Info("re-run requested; added hint", "repo", repo.GetFullName(), "check_run", ev.GetCheckRun().GetID())
-		w.WriteHeader(http.StatusNoContent)
+		s.rerunHints(w, r, log, repo, func(client *gh.Client) ([]*gh.CheckRun, error) {
+			res, _, err := client.Checks.ListCheckRunsCheckSuite(r.Context(), repo.GetOwner().GetLogin(), repo.GetName(),
+				ev.GetCheckSuite().GetID(), &gh.ListCheckRunsOptions{AppID: new(s.AppID), ListOptions: gh.ListOptions{PerPage: 100}})
+			if err != nil {
+				return nil, fmt.Errorf("list check runs of suite %d: %w", ev.GetCheckSuite().GetID(), err)
+			}
+			return res.CheckRuns, nil
+		})
 	default:
 		w.WriteHeader(http.StatusNoContent)
 	}
+}
+
+// rerunHints adds the re-run hint to the App's check runs that runs returns.
+// tf-plan-cost keeps no copy of the plan, so it cannot re-run by itself.
+func (s *Server) rerunHints(w http.ResponseWriter, r *http.Request, log *slog.Logger, repo *gh.Repository,
+	runs func(*gh.Client) ([]*gh.CheckRun, error)) {
+	owner := repo.GetOwner().GetLogin()
+	client, err := s.GitHub.RepoClient(r.Context(), owner, repo.GetName(), repo.GetID())
+	if err != nil {
+		log.Error("re-run: get installation client", "repo", repo.GetFullName(), "err", err)
+		writeError(w, http.StatusBadGateway, "GitHub API error")
+		return
+	}
+	list, err := runs(client)
+	if err != nil {
+		log.Error("re-run: list check runs", "repo", repo.GetFullName(), "err", err)
+		writeError(w, http.StatusBadGateway, "GitHub API error")
+		return
+	}
+	checks := &github.Checks{Client: client, Owner: owner, Repo: repo.GetName()}
+	for _, cr := range list {
+		if cr.GetApp().GetID() != 0 && cr.GetApp().GetID() != s.AppID {
+			continue
+		}
+		if err := checks.AddRerunHint(r.Context(), cr); err != nil {
+			log.Error("re-run: update check run", "repo", repo.GetFullName(), "check_run", cr.GetID(), "err", err)
+			writeError(w, http.StatusBadGateway, "GitHub API error")
+			return
+		}
+	}
+	log.Info("re-run requested; added hint", "repo", repo.GetFullName(), "check_runs", len(list))
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // validSignature checks GitHub's X-Hub-Signature-256 header ("sha256=" and
