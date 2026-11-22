@@ -1,0 +1,54 @@
+# Release builds: `git tag vX.Y.Z && git push origin vX.Y.Z` runs
+# .github/workflows/release.yml, which runs goreleaser with this config.
+# Check locally with: goreleaser release --snapshot --clean
+version: 2
+
+project_name: tf-plan-cost
+
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - main: ./cmd/tf-plan-cost
+    env:
+      - CGO_ENABLED=0
+    # Linux only for now: the Action runs on Linux runners, and other
+    # platforms can `go install` (the Action builds from source there).
+    goos: [linux]
+    goarch: [amd64, arm64]
+    flags: [-trimpath]
+    ldflags:
+      - -s -w -X main.version={{ .Version }}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  # tf-plan-cost_1.0.0_linux_amd64.tar.gz; action.yml relies on this name.
+  - name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+changelog:
+  use: github
+  sort: asc
+  filters:
+    exclude:
+      - "^Merge pull request"
+      - "^docs:"
+      - "^ci:"
+      - "^chore:"
+      - "^style:"
+
+release:
+  draft: false
+  prerelease: auto
+  footer: |
+    **GitHub Action:** `uses: mubarak-j/tf-plan-cost@v{{ .Major }}`
+    The binaries' build provenance can be verified with
+    `gh attestation verify tf-plan-cost_{{ .Version }}_linux_amd64.tar.gz --repo mubarak-j/tf-plan-cost`.

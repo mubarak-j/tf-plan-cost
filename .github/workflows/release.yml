@@ -1,0 +1,62 @@
+# Publishes a release when a version tag is pushed:
+#   git tag v1.2.3 && git push origin v1.2.3
+# Builds linux/amd64 and linux/arm64 binaries with goreleaser, attests their
+# build provenance, and moves the major tag (v1) so `uses: ...@v1` gets it.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write     # create the release, move the major tag
+  id-token: write     # sign the provenance attestation
+  attestations: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    # Skip the moving major tags themselves (v1), which this job pushes.
+    if: contains(github.ref_name, '.')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # goreleaser builds the changelog from history
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Run tests
+        run: go test ./...
+
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            dist/*.tar.gz
+            dist/checksums.txt
+
+      - name: Move the major tag
+        # Only for final releases (v1.2.3), not pre-releases (v1.2.3-rc.1).
+        if: ${{ !contains(github.ref_name, '-') }}
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          major="${TAG%%.*}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -f "$major" "$TAG^{commit}"
+          git push -f origin "refs/tags/$major"
+          echo "Moved $major to $TAG"
