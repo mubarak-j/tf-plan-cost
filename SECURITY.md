@@ -2,7 +2,9 @@
 
 ## Reporting a vulnerability
 
-Please **don't open a public issue** for security problems. Report them privately through GitHub: on this repository's **Security** tab, choose **Report a vulnerability** ([GitHub's guide](https://docs.github.com/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability)).
+Please **don't open a public issue** for security problems. Report them privately in either of these ways:
+- **On GitHub (preferred):** on this repository's **Security** tab, choose **Report a vulnerability** ([GitHub's guide](https://docs.github.com/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability)).
+- **By email:** write to [support@mubarak-j.com](mailto:support@mubarak-j.com).
 
 Please include what you found, how to reproduce it, and what an attacker could do with it. Reports are handled on a best-effort basis. Expect an acknowledgement within a week, and a fix or mitigation as soon as practical. You're welcome to be credited in the advisory.
 
