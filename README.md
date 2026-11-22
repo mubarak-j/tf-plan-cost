@@ -368,7 +368,7 @@ All other resource types are listed under **Not priced** as "resource type not s
 
 ## Contributing and security
 
-Contributions are welcome, especially pricers for more resource types; see [CONTRIBUTING.md](CONTRIBUTING.md). To report a vulnerability, see [SECURITY.md](SECURITY.md).
+Contributions are welcome, especially pricers for more resource types; see [CONTRIBUTING.md](CONTRIBUTING.md). To report a vulnerability, see [SECURITY.md](SECURITY.md). For questions about the hosted App, write to [support@mubarak-j.com](mailto:support@mubarak-j.com) or open an issue.
 
 ## Development
 
