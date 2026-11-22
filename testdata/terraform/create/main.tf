@@ -71,18 +71,18 @@ resource "aws_eks_node_group" "default" {
   }
 }
 resource "aws_db_instance" "app" {
-  identifier        = "app"
-  engine            = "postgres"
-  instance_class    = "db.m6g.large"
-  allocated_storage = 100
-  storage_type      = "gp3"
-  multi_az          = true
-  username          = "app"
+  identifier                  = "app"
+  engine                      = "postgres"
+  instance_class              = "db.m6g.large"
+  allocated_storage           = 100
+  storage_type                = "gp3"
+  multi_az                    = true
+  username                    = "app"
   manage_master_user_password = true
-  skip_final_snapshot = true
+  skip_final_snapshot         = true
 }
 module "edge" {
-  source = "./edge"
+  source    = "./edge"
   providers = { aws = aws.west }
 }
 resource "aws_s3_bucket" "logs" {

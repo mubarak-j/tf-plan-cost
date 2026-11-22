@@ -39,6 +39,10 @@ GET /healthz. Configured with environment variables (see .env.example):
   GITHUB_APP_ID               App ID (required)
   GITHUB_PRIVATE_KEY          App private key: PEM contents or a path to the PEM file (required)
   GITHUB_WEBHOOK_SECRET       webhook secret (required)
+
+The three variables above may be "ssm:<parameter name>" to read the value
+from AWS SSM Parameter Store (decrypted) at start-up.
+
   PORT                        listen port (default 8080)
   TF_PLAN_COST_LISTEN_HOST    listen address (default: all interfaces)
   GITHUB_API_URL              REST API root (default https://api.github.com)
@@ -113,6 +117,10 @@ func runServe(ctx context.Context, args []string, getenv func(string) string, st
 
 func serve(ctx context.Context, getenv func(string) string, log *slog.Logger,
 	newClient clientFactory, onListen func(addr string)) error {
+	getenv, err := resolveSecrets(ctx, getenv)
+	if err != nil {
+		return err
+	}
 	cfg, err := loadServeConfig(getenv)
 	if err != nil {
 		return err
