@@ -6,6 +6,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.48.0
 	github.com/aws/aws-sdk-go-v2/config v1.33.16
 	github.com/aws/aws-sdk-go-v2/service/pricing v1.51.5
+	github.com/aws/aws-sdk-go-v2/service/ssm v1.84.0
 	github.com/bradleyfalzon/ghinstallation/v2 v2.19.0
 	github.com/coreos/go-oidc/v3 v3.21.0
 	github.com/go-jose/go-jose/v4 v4.1.4
@@ -24,7 +25,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.24 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.14.11 // indirect
 	github.com/aws/aws-sdk-go-v2/service/signin v1.12.4 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssm v1.84.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.39.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.44.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.51.9 // indirect
