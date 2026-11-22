@@ -172,6 +172,8 @@ Prior state, outputs, other provider arguments (such as access keys) and unrelat
 
 The server reads prices with the standard AWS credential chain, which needs only `pricing:GetProducts`. Plan uploads are limited to 5 MB.
 
+To host it yourself on AWS Lambda for about $0 a month, follow [`deploy/aws`](deploy/aws/README.md). It covers registering the App, storing its secrets in SSM Parameter Store and deploying with Terraform.
+
 ## Install
 
 **From source** (Go 1.27+):
