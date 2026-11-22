@@ -7,9 +7,11 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/mubarak-j/tf-plan-cost/internal/plan"
 	"github.com/mubarak-j/tf-plan-cost/internal/pricing"
@@ -27,6 +29,7 @@ Usage:
   tf-plan-cost diff [flags] plan.json     (use - to read from stdin)
   tf-plan-cost github-comment --report report.json [flags]
   tf-plan-cost strip [-o stripped.json] plan.json
+  tf-plan-cost upload --app-url URL plan.json   (GitHub App mode, in Actions)
   tf-plan-cost serve                      (GitHub App server)
   tf-plan-cost version
 
@@ -70,6 +73,8 @@ func run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.
 		return runGitHubComment(ctx, args[1:], stdout, stderr)
 	case "strip":
 		return runStrip(args[1:], stdin, stdout, stderr)
+	case "upload":
+		return runUpload(ctx, args[1:], os.Getenv, stdout, stderr, &http.Client{Timeout: 3 * time.Minute})
 	case "serve":
 		return runServe(ctx, args[1:], os.Getenv, stderr, newClient, nil)
 	case "version", "--version":

@@ -36,6 +36,8 @@ type PlanResponse struct {
 	// commit: the check run was created on that commit, but the comment was
 	// left for the newer run.
 	Stale bool `json:"stale,omitempty"`
+	// Report is the Markdown report, for the workflow's job summary.
+	Report string `json:"report"`
 }
 
 var pullRef = regexp.MustCompile(`^refs/pull/([0-9]+)/merge$`)
@@ -212,6 +214,7 @@ func (s *Server) handlePlan(w http.ResponseWriter, r *http.Request) {
 		Exceeded:              exceeded,
 		CheckURL:              checkURL,
 		Stale:                 stale,
+		Report:                md.String(),
 	}
 	if opts.comment && !stale {
 		c := &github.Commenter{Client: client, Owner: owner, Repo: repo, Author: s.BotLogin}

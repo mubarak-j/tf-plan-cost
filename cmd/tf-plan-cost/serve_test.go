@@ -82,10 +82,19 @@ func TestServeMissingConfig(t *testing.T) {
 	}
 }
 
-// TestServeEndToEnd runs the real server against a fake GitHub, a fake OIDC
-// issuer and recorded prices: upload a stripped plan, get a check run and a
-// PR comment.
-func TestServeEndToEnd(t *testing.T) {
+// testApp is a running App server wired to fakes.
+type testApp struct {
+	base string
+	gh   *githubtest.Server
+	iss  *oidctest.Issuer
+	logs *bytes.Buffer
+	stop func() int // cancels the server and returns its exit code
+}
+
+// startApp runs the real server against a fake GitHub, a fake OIDC issuer
+// and recorded prices. o/r has a $100 limit at the PR head.
+func startApp(t *testing.T) *testApp {
+	t.Helper()
 	fake := githubtest.NewServer(t)
 	fake.AddRepo("o/r", &githubtest.Repo{
 		ID: 42, Installation: 7,
@@ -98,7 +107,6 @@ func TestServeEndToEnd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	env := envFunc(map[string]string{
 		"GITHUB_APP_ID": "123", "GITHUB_PRIVATE_KEY": testPEM(t), "GITHUB_WEBHOOK_SECRET": "s",
 		"PORT": "0", "TF_PLAN_COST_LISTEN_HOST": "127.0.0.1",
@@ -107,26 +115,52 @@ func TestServeEndToEnd(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	addr := make(chan string, 1)
 	done := make(chan int, 1)
-	var stderr bytes.Buffer
-	go func() { done <- runServe(ctx, nil, env, &stderr, factory(prices), func(a string) { addr <- a }) }()
+	logs := &bytes.Buffer{}
+	go func() { done <- runServe(ctx, nil, env, logs, factory(prices), func(a string) { addr <- a }) }()
 
-	var base string
+	a := &testApp{gh: fake, iss: iss, logs: logs}
 	select {
-	case a := <-addr:
-		base = "http://" + a
+	case got := <-addr:
+		a.base = "http://" + got
 	case code := <-done:
-		t.Fatalf("serve exited %d: %s", code, stderr.String())
+		cancel()
+		t.Fatalf("serve exited %d: %s", code, logs.String())
 	case <-time.After(10 * time.Second):
+		cancel()
 		t.Fatal("server did not start")
 	}
+	var stopped bool
+	var code int
+	a.stop = func() int {
+		if stopped {
+			return code
+		}
+		stopped = true
+		cancel()
+		select {
+		case code = <-done:
+		case <-time.After(35 * time.Second):
+			t.Fatal("server did not shut down")
+		}
+		return code
+	}
+	t.Cleanup(func() { a.stop() })
+	return a
+}
+
+// TestServeEndToEnd uploads a stripped plan to the running server and gets a
+// check run and a PR comment.
+func TestServeEndToEnd(t *testing.T) {
+	a := startApp(t)
+	ctx := context.Background()
 
 	// Strip the plan the way the Action does, then upload it.
-	var stripped bytes.Buffer
+	var stripped, stderr bytes.Buffer
 	if code := run(ctx, []string{"strip", filepath.Join(testdata, "plans", "update.json")}, nil, &stripped, &stderr, nil); code != 0 {
 		t.Fatalf("strip: %s", stderr.String())
 	}
-	req, _ := http.NewRequest(http.MethodPost, base+"/v1/plans", &stripped)
-	req.Header.Set("Authorization", "Bearer "+iss.Sign(t, iss.Claims()))
+	req, _ := http.NewRequest(http.MethodPost, a.base+"/v1/plans", &stripped)
+	req.Header.Set("Authorization", "Bearer "+a.iss.Sign(t, a.iss.Claims()))
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)
@@ -147,27 +181,23 @@ func TestServeEndToEnd(t *testing.T) {
 	if out.Delta != "242.24" || !out.Exceeded {
 		t.Errorf("response = %s", body)
 	}
-	if checks := fake.Checks(); len(checks) != 1 || checks[0].Conclusion != "failure" || checks[0].Output.Title != "+$242.24/mo" {
+	if checks := a.gh.Checks(); len(checks) != 1 || checks[0].Conclusion != "failure" || checks[0].Output.Title != "+$242.24/mo" {
 		t.Errorf("check runs = %+v", checks)
 	}
-	if comments := fake.AllComments(); len(comments) != 1 || comments[0].Login != "tf-plan-cost[bot]" {
+	if comments := a.gh.AllComments(); len(comments) != 1 || comments[0].Login != "tf-plan-cost[bot]" {
 		t.Errorf("comments = %+v", comments)
 	}
 
-	if r, err := http.Get(base + "/healthz"); err != nil || r.StatusCode != http.StatusOK {
+	if r, err := http.Get(a.base + "/healthz"); err != nil || r.StatusCode != http.StatusOK {
 		t.Errorf("healthz: %v %v", r, err)
+	} else {
+		r.Body.Close()
 	}
 
-	cancel()
-	select {
-	case code := <-done:
-		if code != 0 {
-			t.Errorf("serve exit %d: %s", code, stderr.String())
-		}
-	case <-time.After(35 * time.Second):
-		t.Fatal("server did not shut down")
+	if code := a.stop(); code != 0 {
+		t.Errorf("serve exit %d: %s", code, a.logs.String())
 	}
-	if strings.Contains(stderr.String(), "aws_instance") {
-		t.Errorf("server logged plan contents:\n%s", stderr.String())
+	if strings.Contains(a.logs.String(), "aws_instance") {
+		t.Errorf("server logged plan contents:\n%s", a.logs.String())
 	}
 }

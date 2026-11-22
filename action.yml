@@ -9,6 +9,17 @@ inputs:
   plan:
     description: Path to the JSON plan from `terraform show -json tfplan`.
     required: true
+  mode:
+    description: >-
+      `action` prices the plan in this job (needs AWS credentials for pricing:GetProducts).
+      `app` sends the plan, with sensitive values removed, to the tf-plan-cost GitHub App, which
+      posts a Check Run and the comment (needs the App installed and `id-token: write`).
+    required: false
+    default: action
+  app-url:
+    description: tf-plan-cost App server URL (app mode).
+    required: false
+    default: ""
   region:
     description: AWS region for resources whose region is not in the plan. Defaults to AWS_REGION.
     required: false
@@ -30,26 +41,31 @@ inputs:
     required: false
     default: .tf-plan-cost.yml
   github-token:
-    description: 'Token used to comment. Needs `pull-requests: write`.'
+    description: 'Token used to comment in action mode. Needs `pull-requests: write`.'
     required: false
     default: ${{ github.token }}
 
 outputs:
   delta-monthly-usd:
     description: Monthly cost change in USD, e.g. 242.24 or -16.43.
-    value: ${{ steps.report.outputs.delta-monthly-usd }}
+    value: ${{ steps.report.outputs.delta-monthly-usd || steps.app.outputs.delta-monthly-usd }}
   total-before-monthly-usd:
     description: Monthly cost of the priced resources before the change.
-    value: ${{ steps.report.outputs.total-before-monthly-usd }}
+    value: ${{ steps.report.outputs.total-before-monthly-usd || steps.app.outputs.total-before-monthly-usd }}
   total-after-monthly-usd:
     description: Monthly cost of the priced resources after the change.
-    value: ${{ steps.report.outputs.total-after-monthly-usd }}
+    value: ${{ steps.report.outputs.total-after-monthly-usd || steps.app.outputs.total-after-monthly-usd }}
   exceeded:
-    description: "`true` if the increase is above `fail_above_monthly_usd` (the step then fails)."
-    value: ${{ steps.report.outputs.exceeded }}
+    description: >-
+      `true` if the increase is above `fail_above_monthly_usd`. In action mode the step then fails;
+      in app mode the tf-plan-cost check fails instead.
+    value: ${{ steps.report.outputs.exceeded || steps.app.outputs.exceeded }}
   comment-url:
     description: URL of the created or updated comment, if any.
-    value: ${{ steps.report.outputs.comment-url }}
+    value: ${{ steps.report.outputs.comment-url || steps.app.outputs.comment-url }}
+  check-url:
+    description: URL of the Check Run (app mode).
+    value: ${{ steps.app.outputs.check-url }}
 
 runs:
   using: composite
@@ -57,6 +73,24 @@ runs:
     # Build from the action's own source so the binary matches the ref in
     # `uses:`. Prefer the runner's Go (GOTOOLCHAIN=auto fetches the exact
     # version) so the user's PATH is untouched; install Go only if missing.
+    - name: Check inputs
+      shell: bash
+      env:
+        INPUT_MODE: ${{ inputs.mode }}
+        INPUT_APP_URL: ${{ inputs.app-url }}
+      run: |
+        case "$INPUT_MODE" in
+          action) ;;
+          app)
+            if [ -z "$INPUT_APP_URL" ]; then
+              echo "::error title=tf-plan-cost::app mode needs the app-url input"
+              exit 1
+            fi ;;
+          *)
+            echo "::error title=tf-plan-cost::mode must be action or app, got '$INPUT_MODE'"
+            exit 1 ;;
+        esac
+
     - name: Check for Go
       id: go
       shell: bash
@@ -83,6 +117,7 @@ runs:
       run: go build -trimpath -o "$RUNNER_TEMP/tf-plan-cost/tf-plan-cost" ./cmd/tf-plan-cost
 
     - name: Price the plan
+      if: inputs.mode == 'action'
       shell: bash
       env:
         INPUT_PLAN: ${{ inputs.plan }}
@@ -93,6 +128,7 @@ runs:
         "$RUNNER_TEMP/tf-plan-cost/tf-plan-cost" "${args[@]}" "$INPUT_PLAN" > "$RUNNER_TEMP/tf-plan-cost/report.json"
 
     - name: Comment and check the limit
+      if: inputs.mode == 'action'
       id: report
       shell: bash
       env:
@@ -108,3 +144,24 @@ runs:
           --comment-id "$INPUT_COMMENT_ID" \
           --comment-on-no-change="$INPUT_COMMENT_ON_NO_CHANGE" \
           --config "$INPUT_CONFIG"
+
+    - name: Send the plan to the tf-plan-cost App
+      if: inputs.mode == 'app'
+      id: app
+      shell: bash
+      env:
+        INPUT_PLAN: ${{ inputs.plan }}
+        INPUT_APP_URL: ${{ inputs.app-url }}
+        INPUT_REGION: ${{ inputs.region }}
+        INPUT_COMMENT: ${{ inputs.comment }}
+        INPUT_COMMENT_ID: ${{ inputs.comment-id }}
+        INPUT_COMMENT_ON_NO_CHANGE: ${{ inputs.comment-on-no-change }}
+        INPUT_CONFIG: ${{ inputs.config }}
+      run: |
+        args=(upload --app-url "$INPUT_APP_URL"
+          --comment="$INPUT_COMMENT"
+          --comment-id "$INPUT_COMMENT_ID"
+          --comment-on-no-change="$INPUT_COMMENT_ON_NO_CHANGE"
+          --config "$INPUT_CONFIG")
+        if [ -n "$INPUT_REGION" ]; then args+=(--region "$INPUT_REGION"); fi
+        "$RUNNER_TEMP/tf-plan-cost/tf-plan-cost" "${args[@]}" "$INPUT_PLAN"
