@@ -25,6 +25,7 @@ Usage:
   terraform plan -out=tfplan && terraform show -json tfplan > plan.json
   tf-plan-cost diff [flags] plan.json     (use - to read from stdin)
   tf-plan-cost github-comment --report report.json [flags]
+  tf-plan-cost strip [-o stripped.json] plan.json
   tf-plan-cost version
 
 Run 'tf-plan-cost <command> -h' for flags.
@@ -65,6 +66,8 @@ func run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.
 		return runDiff(ctx, args[1:], stdin, stdout, stderr, newClient)
 	case "github-comment":
 		return runGitHubComment(ctx, args[1:], stdout, stderr)
+	case "strip":
+		return runStrip(args[1:], stdin, stdout, stderr)
 	case "version", "--version":
 		fmt.Fprintln(stdout, "tf-plan-cost", version)
 		return 0
