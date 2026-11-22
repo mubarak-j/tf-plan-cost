@@ -1,0 +1,4 @@
+#!/bin/sh
+# Lambda entry point (provided.al2023). The Web Adapter layer forwards
+# Function URL requests to this server on 127.0.0.1:$PORT.
+exec "${LAMBDA_TASK_ROOT:-.}/tf-plan-cost" serve
