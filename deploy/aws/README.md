@@ -129,6 +129,34 @@ steps:
       app-url: https://<id>.lambda-url.us-east-1.on.aws # the `url` output
 ```
 
+## Custom domain (optional)
+
+Function URLs can't use custom domains, so Terraform can add CloudFront in front of the function, with an ACM certificate. CloudFront forwards all headers except `Host` and caches nothing. It costs about $0 at this volume, because CloudFront's free tier covers 10M requests a month.
+
+The Function URL stays reachable directly. That's safe because the server authenticates every request itself. Locking the URL down to CloudFront only (origin access control) isn't possible here: it requires an `x-amz-content-sha256` header on every POST, which GitHub webhooks don't send.
+
+DNS is managed wherever your domain lives. With Cloudflare, add both records below as **DNS only (grey cloud)**, not proxied. TLS then runs from GitHub straight to AWS.
+
+1. Set the domain in `terraform.tfvars` (gitignored; see `terraform.tfvars.example`):
+   ```hcl
+   domain_name = "tf-plan-cost.example.com"
+   ```
+2. Create the certificate first. It can't be validated until its DNS record exists:
+   ```sh
+   terraform apply -target='aws_acm_certificate.this[0]'
+   terraform output certificate_validation_record
+   ```
+   Add that CNAME record (name and value as shown) in your DNS.
+3. Create the rest. This waits for ACM to validate the certificate, usually a few minutes after the record appears, and then about 5 minutes for CloudFront:
+   ```sh
+   terraform apply
+   terraform output domain_record
+   ```
+   Add that CNAME (`tf-plan-cost.example.com` → `dxxxx.cloudfront.net`).
+4. Check `curl https://tf-plan-cost.example.com/healthz`, then change the App's **Webhook URL** to the `webhook_url` output.
+
+Keep the validation record: ACM uses it to renew the certificate automatically.
+
 ## Operating it
 
 **Logs:**
@@ -165,5 +193,6 @@ Don't run `terraform apply -replace` on the function. Replacing it changes the F
 | `web_adapter_layer_version` | `30` | `LambdaAdapterLayerArm64` version |
 | `log_retention_days` | `14` | Log retention |
 | `package` | `build/tf-plan-cost.zip` | Zip from `build.sh` |
+| `domain_name` | `null` | Custom domain served through CloudFront |
 
 State is local (`terraform.tfstate`, gitignored). Keep it safe, or add a backend.

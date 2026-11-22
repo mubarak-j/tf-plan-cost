@@ -39,3 +39,9 @@ variable "log_retention_days" {
   type        = number
   default     = 14
 }
+
+variable "domain_name" {
+  description = "Custom domain for the server, e.g. tf-plan-cost.example.com (DNS managed elsewhere). null = no custom domain, only the Function URL."
+  type        = string
+  default     = null
+}
