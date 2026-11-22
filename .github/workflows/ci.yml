@@ -58,10 +58,16 @@ jobs:
         run: deploy/aws/build.sh
       - name: Validate
         run: |
-          for dir in deploy/aws examples/aws-oidc-role; do
+          for dir in deploy/aws examples/aws-oidc-role examples/demo; do
             terraform -chdir="$dir" init -backend=false -input=false
             terraform -chdir="$dir" validate
           done
+      - name: Demo state matches main.tf
+        run: |
+          # Exit code 2 means the plan has changes: regenerate demo.tfstate
+          # with examples/demo/tools/make-state.py.
+          terraform -chdir=examples/demo plan -input=false -lock=false -refresh=false \
+            -state=demo.tfstate -detailed-exitcode -no-color
 
   release-dry-run:
     runs-on: ubuntu-latest

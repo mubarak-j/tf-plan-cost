@@ -1,127 +1,57 @@
-# tf-plan-cost
+<p align="center">
+  <img src="docs/images/logo.svg" width="96" height="96" alt="">
+</p>
 
-[![CI](https://github.com/mubarak-j/tf-plan-cost/actions/workflows/ci.yml/badge.svg)](https://github.com/mubarak-j/tf-plan-cost/actions/workflows/ci.yml)
+<h1 align="center">tf-plan-cost</h1>
 
-**See what a Terraform change will cost before you merge it.**
+<p align="center"><b>See what a Terraform change will cost before you merge it.</b></p>
 
-`tf-plan-cost` reads a Terraform plan and works out how much the change adds to or removes from your monthly AWS bill, resource by resource. It gets prices from the official [AWS Price List API](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/price-changes.html) instead of a hardcoded table. When it can't price something exactly, it says so instead of guessing.
+<p align="center">
+  <a href="https://github.com/mubarak-j/tf-plan-cost/actions/workflows/ci.yml"><img src="https://github.com/mubarak-j/tf-plan-cost/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/mubarak-j/tf-plan-cost/releases/latest"><img src="https://img.shields.io/github/v/release/mubarak-j/tf-plan-cost" alt="Release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/mubarak-j/tf-plan-cost" alt="License"></a>
+</p>
 
-```
-$ tf-plan-cost diff plan.json
-```
+`tf-plan-cost` reads the Terraform plan in your pull request and works out how much the change adds to or removes from your monthly AWS bill, resource by resource. It posts the result as a **PR comment** and a **Check Run**, which can fail when a change costs more than your limit.
 
-> ### tf-plan-cost: **+$242.24/mo** (was $323.57 → now $565.81)
->
-> | Resource | Action | Before | After | Δ/mo |
-> |---|---|---|---|---|
-> | `aws_eks_node_group.default` | ~ 3 × m6i.large → 5 × m6i.large | $210.24 | $350.40 | +$140.16 |
-> | `aws_instance.api[0]` | ~ m6i.large → m6i.xlarge | $72.48 | $142.56 | +$70.08 |
-> | `aws_ebs_volume.data` | ~ gp3 100 GB → gp3 500 GB | $8.00 | $40.00 | +$32.00 |
+<p align="center">
+  <img src="docs/images/pr-comment.png" width="760" alt="tf-plan-cost comment on a pull request: +$242.24/mo, with a per-resource table of before, after and monthly change">
+</p>
 
-Use it as a **GitHub Action** that comments on pull requests (and can fail when a change costs too much), or as a **CLI**.
+- **Real prices.** They come from the official [AWS Price List API](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/price-changes.html), not a hardcoded table.
+- **No guessing.** When it can't match exactly one price, it lists the resource as not priced and says why.
+- **No AWS credentials in your CI** with the GitHub App. The plan's sensitive values are removed before it leaves your CI.
+- **One comment per PR,** updated in place on every push. Monorepos can have one per Terraform root.
 
-> [!NOTE]
-> **Status:** the CLI and GitHub Action work. **GitHub App** mode, which posts a Check Run without AWS credentials in your CI, is in preview: the server is built and tested, but there is no hosted App to install yet.
+## Quick start
 
-## Architecture
+1. **Install the [tf-plan-cost GitHub App](https://github.com/apps/tf-plan-cost)** on your repositories.
+2. **Add one step after `terraform plan`** in your pull request workflow:
+   ```yaml
+   permissions:
+     contents: read
+     id-token: write   # lets the App verify which repository the plan comes from
 
-```mermaid
-flowchart LR
-    subgraph ci["Your CI (holds your cloud credentials)"]
-        tf["terraform plan -out=tfplan<br/>terraform show -json tfplan > plan.json"]
-    end
+   steps:
+     # ... checkout, terraform init, terraform plan -out=tfplan ...
+     - run: terraform show -json tfplan > plan.json
+     - uses: mubarak-j/tf-plan-cost@v1
+       with:
+         plan: plan.json
+         mode: app
+   ```
+3. **Optional: set a limit** by adding `.tf-plan-cost.yml` to the repository root:
+   ```yaml
+   fail_above_monthly_usd: 500
+   ```
 
-    subgraph tpc["tf-plan-cost"]
-        parse["internal/plan<br/>parse plan JSON,<br/>resolve each resource's region"]
-        est["internal/pricing<br/>Estimator: price before and after,<br/>sum totals and delta"]
-        res["internal/pricing/resources<br/>one pricer per resource type"]
-        cache["Cache<br/>memory + disk, 7-day TTL"]
-        render["internal/render<br/>Markdown or JSON"]
-    end
+Open a pull request that changes a Terraform resource, and the comment and check appear. To try it without your own infrastructure, use [`examples/demo`](examples/demo), a small stack that needs no AWS account.
 
-    api[("AWS Price List API<br/>pricing:GetProducts")]
+If you'd rather keep everything inside your own CI, use [action mode](#github-action-mode) with your own AWS credentials instead. The App isn't needed then.
 
-    tf -- plan.json --> parse --> est
-    est <--> res
-    res -- price queries --> cache -- cache miss --> api
-    est -- report --> render --> out["PR comment / stdout"]
-```
+## GitHub App mode
 
-1. **Parse** (`internal/plan`). Reads `terraform show -json` output: every managed resource change with its `before` and `after` values, and which values are unknown until apply. Each resource's region is taken from, in order:
-   - its own `region` attribute (AWS provider v6+);
-   - its provider configuration (a literal, or a root `var.*`, including provider aliases and modules);
-   - the `--region` flag.
-2. **Price** (`internal/pricing`). The estimator prices each side of every change (`before` for deletes, `after` for creates, both for updates and replacements). Unchanged resources are priced too, so the totals reflect the whole stack, not just the diff.
-3. **Look up** (`internal/pricing/resources`). Each pricer turns resource attributes into exact Price List queries, for example `instanceType=m6i.large, regionCode=us-east-1, operatingSystem=Linux, tenancy=Shared`. A query must match exactly one on-demand price. Zero or several matches mark the resource as *not priced*, never as a guess.
-4. **Render** (`internal/render`). Writes a Markdown comment, with a hidden `<!-- tf-plan-cost -->` marker so later runs can update the same PR comment, or JSON for scripts. Amounts are decimal strings to avoid floating-point rounding.
-
-Cloud credentials for `terraform plan` stay in your own CI. `tf-plan-cost` only needs read access to public AWS prices.
-
-## GitHub Action
-
-Add one step after `terraform plan`. It prices the plan and then creates or updates a single comment on the pull request. It also writes the same report to the job summary.
-
-```yaml
-permissions:
-  contents: read
-  pull-requests: write # create/update the cost comment
-  id-token: write      # OIDC for AWS credentials
-
-steps:
-  # ... checkout, AWS credentials, terraform init/plan ...
-  - run: terraform show -json tfplan > plan.json
-  - uses: mubarak-j/tf-plan-cost@v1
-    with:
-      plan: plan.json
-```
-
-A complete workflow is in [`examples/workflows/terraform-cost.yml`](examples/workflows/terraform-cost.yml).
-
-**AWS credentials.** The step needs credentials allowed to call `pricing:GetProducts` (see [Usage](#1-give-it-aws-credentials)). [`examples/aws-oidc-role`](examples/aws-oidc-role) is Terraform for an OIDC role limited to that one action, so no keys are stored in GitHub.
-
-**Cost limit.** To fail the step when a pull request adds more than a set amount per month, add `.tf-plan-cost.yml` to the repository root:
-
-```yaml
-fail_above_monthly_usd: 500
-```
-
-The comment still posts and shows a caution. Decreases never fail. Unknown keys are rejected, so a typo can't silently turn the limit off.
-
-| Input | Default | Description |
-|---|---|---|
-| `plan` | *(required)* | Path to `terraform show -json` output |
-| `mode` | `action` | `action`, or `app` for [GitHub App mode](#github-app-preview) |
-| `app-url` | `https://tf-plan-cost.mubarak-j.com` | App server URL (app mode); change it only for your own server |
-| `region` | `$AWS_REGION` | Region for resources whose region isn't in the plan |
-| `comment` | `true` | Create or update the PR comment |
-| `comment-id` | `default` | Separate comment per Terraform root, e.g. `prod` |
-| `comment-on-no-change` | `false` | Comment even when nothing changes (an existing comment is always updated) |
-| `config` | `.tf-plan-cost.yml` | Limit config; a missing file means no limit |
-| `github-token` | `${{ github.token }}` | Needs `pull-requests: write` (action mode) |
-
-| Output | Example |
-|---|---|
-| `delta-monthly-usd` | `242.24` |
-| `total-before-monthly-usd` / `total-after-monthly-usd` | `323.57` / `565.81` |
-| `exceeded` | `false` |
-| `comment-url` | link to the comment |
-| `check-url` | link to the Check Run (app mode) |
-
-**Behavior:**
-- **Monorepos:** run the step once per Terraform root with a different `comment-id`. Each root then gets its own comment.
-- **Updating:** a later run finds the comment by a hidden marker and edits it. Only comments written by the same token's user are matched, so a person quoting the marker is never edited.
-- **Fork PRs and push events:** commenting is skipped with a warning, because the token is read-only or there is no PR. The report still goes to the job summary.
-- **No resource changes:** nothing is posted, unless an earlier comment exists. That comment is updated to "no cost change".
-
-**Notes:**
-- **Installing the binary:**
-  - With a release tag (`@v1`, `@v1.2.3`) on a Linux runner, the action downloads the matching release binary and checks it against the release's `checksums.txt`.
-  - With a branch or commit SHA (`@main`), or on macOS or Windows runners, it builds `tf-plan-cost` from source instead. It uses the runner's Go when one is installed (any Go 1.21+ fetches the right version itself), so your `PATH` is unchanged, and installs Go only when none is present.
-- On GitHub Enterprise Server, the API URL is read from `GITHUB_API_URL`.
-
-## GitHub App (preview)
-
-In app mode the Action doesn't price anything itself. It sends the plan to the tf-plan-cost App, which prices it with **its own** AWS credentials and reports back as `tf-plan-cost[bot]`:
+This is the [Quick start](#quick-start) setup. In app mode the Action doesn't price anything itself. It sends the plan to the tf-plan-cost App, which prices it with **its own** AWS credentials and reports back as `tf-plan-cost[bot]`:
 
 - a **Check Run** on the pull request's head commit (`+$242.24/mo`), which fails when the increase is above `fail_above_monthly_usd`, so branch protection can require it;
 - the same PR comment as action mode.
@@ -174,6 +104,119 @@ Prior state, outputs, other provider arguments (such as access keys) and unrelat
 The server reads prices with the standard AWS credential chain, which needs only `pricing:GetProducts`. Plan uploads are limited to 5 MB.
 
 To host it yourself on AWS Lambda for about $0 a month, follow [`deploy/aws`](deploy/aws/README.md). It covers registering the App, storing its secrets in SSM Parameter Store and deploying with Terraform.
+
+## GitHub Action mode
+
+Prices the plan inside your own workflow, with your own AWS credentials, so nothing leaves your CI. Add one step after `terraform plan`. It prices the plan and then creates or updates a single comment on the pull request. It also writes the same report to the job summary.
+
+```yaml
+permissions:
+  contents: read
+  pull-requests: write # create/update the cost comment
+  id-token: write      # OIDC for AWS credentials
+
+steps:
+  # ... checkout, AWS credentials, terraform init/plan ...
+  - run: terraform show -json tfplan > plan.json
+  - uses: mubarak-j/tf-plan-cost@v1
+    with:
+      plan: plan.json
+```
+
+A complete workflow is in [`examples/workflows/terraform-cost.yml`](examples/workflows/terraform-cost.yml).
+
+**AWS credentials.** The step needs credentials allowed to call `pricing:GetProducts` (see [Usage](#1-give-it-aws-credentials)). [`examples/aws-oidc-role`](examples/aws-oidc-role) is Terraform for an OIDC role limited to that one action, so no keys are stored in GitHub.
+
+**Cost limit.** To fail the step when a pull request adds more than a set amount per month, add `.tf-plan-cost.yml` to the repository root:
+
+```yaml
+fail_above_monthly_usd: 500
+```
+
+The comment still posts and shows a caution. Decreases never fail. Unknown keys are rejected, so a typo can't silently turn the limit off.
+
+| Input | Default | Description |
+|---|---|---|
+| `plan` | *(required)* | Path to `terraform show -json` output |
+| `mode` | `action` | `action`, or `app` for [GitHub App mode](#github-app-mode) |
+| `app-url` | `https://tf-plan-cost.mubarak-j.com` | App server URL (app mode); change it only for your own server |
+| `region` | `$AWS_REGION` | Region for resources whose region isn't in the plan |
+| `comment` | `true` | Create or update the PR comment |
+| `comment-id` | `default` | Separate comment per Terraform root, e.g. `prod` |
+| `comment-on-no-change` | `false` | Comment even when nothing changes (an existing comment is always updated) |
+| `config` | `.tf-plan-cost.yml` | Limit config; a missing file means no limit |
+| `github-token` | `${{ github.token }}` | Needs `pull-requests: write` (action mode) |
+
+| Output | Example |
+|---|---|
+| `delta-monthly-usd` | `242.24` |
+| `total-before-monthly-usd` / `total-after-monthly-usd` | `323.57` / `565.81` |
+| `exceeded` | `false` |
+| `comment-url` | link to the comment |
+| `check-url` | link to the Check Run (app mode) |
+
+**Behavior:**
+- **Monorepos:** run the step once per Terraform root with a different `comment-id`. Each root then gets its own comment.
+- **Updating:** a later run finds the comment by a hidden marker and edits it. Only comments written by the same token's user are matched, so a person quoting the marker is never edited.
+- **Fork PRs and push events:** commenting is skipped with a warning, because the token is read-only or there is no PR. The report still goes to the job summary.
+- **No resource changes:** nothing is posted, unless an earlier comment exists. That comment is updated to "no cost change".
+
+**Notes:**
+- **Installing the binary:**
+  - With a release tag (`@v1`, `@v1.2.3`) on a Linux runner, the action downloads the matching release binary and checks it against the release's `checksums.txt`.
+  - With a branch or commit SHA (`@main`), or on macOS or Windows runners, it builds `tf-plan-cost` from source instead. It uses the runner's Go when one is installed (any Go 1.21+ fetches the right version itself), so your `PATH` is unchanged, and installs Go only when none is present.
+- On GitHub Enterprise Server, the API URL is read from `GITHUB_API_URL`.
+
+## How it works
+
+```mermaid
+flowchart LR
+    subgraph ci["Your CI (holds your cloud credentials)"]
+        tf["terraform plan -out=tfplan<br/>terraform show -json tfplan > plan.json"]
+    end
+
+    subgraph tpc["tf-plan-cost"]
+        parse["internal/plan<br/>parse plan JSON,<br/>resolve each resource's region"]
+        est["internal/pricing<br/>Estimator: price before and after,<br/>sum totals and delta"]
+        res["internal/pricing/resources<br/>one pricer per resource type"]
+        cache["Cache<br/>memory + disk, 7-day TTL"]
+        render["internal/render<br/>Markdown or JSON"]
+    end
+
+    api[("AWS Price List API<br/>pricing:GetProducts")]
+
+    tf -- plan.json --> parse --> est
+    est <--> res
+    res -- price queries --> cache -- cache miss --> api
+    est -- report --> render --> out["PR comment / stdout"]
+```
+
+1. **Parse** (`internal/plan`). Reads `terraform show -json` output: every managed resource change with its `before` and `after` values, and which values are unknown until apply. Each resource's region is taken from, in order:
+   - its own `region` attribute (AWS provider v6+);
+   - its provider configuration (a literal, or a root `var.*`, including provider aliases and modules);
+   - the `--region` flag.
+2. **Price** (`internal/pricing`). The estimator prices each side of every change (`before` for deletes, `after` for creates, both for updates and replacements). Unchanged resources are priced too, so the totals reflect the whole stack, not just the diff.
+3. **Look up** (`internal/pricing/resources`). Each pricer turns resource attributes into exact Price List queries, for example `instanceType=m6i.large, regionCode=us-east-1, operatingSystem=Linux, tenancy=Shared`. A query must match exactly one on-demand price. Zero or several matches mark the resource as *not priced*, never as a guess.
+4. **Render** (`internal/render`). Writes a Markdown comment, with a hidden `<!-- tf-plan-cost -->` marker so later runs can update the same PR comment, or JSON for scripts. Amounts are decimal strings to avoid floating-point rounding.
+
+Cloud credentials for `terraform plan` stay in your own CI. `tf-plan-cost` only needs read access to public AWS prices.
+
+In **GitHub App mode**, the same engine runs on the App's server, and the workflow only uploads the stripped plan:
+
+```mermaid
+sequenceDiagram
+    participant W as Your workflow
+    participant A as tf-plan-cost App<br/>(AWS Lambda)
+    participant G as GitHub API
+    participant P as AWS Price List API
+    W->>W: terraform plan, strip sensitive values
+    W->>A: POST /v1/plans + GitHub Actions OIDC token
+    A->>A: verify token (GitHub's keys, audience, expiry)
+    A->>G: App installed on this repo? PR head commit, .tf-plan-cost.yml
+    A->>P: price queries (cached)
+    A->>G: Check Run on the head commit, upsert PR comment
+    A-->>W: delta, check URL, comment URL
+```
 
 ## Install
 
@@ -307,7 +350,25 @@ All other resource types are listed under **Not priced** as "resource type not s
 **Scope**
 - AWS only, and only the resource types listed above.
 - Regions must be known statically or passed with `--region`. A provider region set from an environment variable in CI, a local value or a module variable can't be read from the plan. AWS provider v6 avoids this, because it records each resource's region in the plan.
-- The plan JSON contains your resource attributes, which can include sensitive values. In CLI and action mode, `tf-plan-cost` only sends price queries (service, region and product attributes) to AWS, never the plan itself. In app mode, only the stripped plan is sent to the App (see [What leaves your CI](#github-app-preview)).
+- The plan JSON contains your resource attributes, which can include sensitive values. In CLI and action mode, `tf-plan-cost` only sends price queries (service, region and product attributes) to AWS, never the plan itself. In app mode, only the stripped plan is sent to the App (see [What leaves your CI](#github-app-mode)).
+
+## FAQ
+
+**How accurate is it?** It uses AWS's on-demand list prices for exactly the instance types, storage and regions in your plan, at 730 hours a month. Usage-based charges (data transfer, requests, load balancer capacity units) and discounts (Savings Plans, Reserved Instances) aren't included; see [Known limitations](#known-limitations). It's meant to catch "this PR adds $2,000 a month", not to reproduce your invoice.
+
+**Which resources does it price?** EC2 instances, EBS volumes, RDS (PostgreSQL, MySQL, MariaDB), NAT gateways, load balancers and EKS. See [Supported resources](#supported-resources). Everything else is listed as not priced. It's never counted as $0 by mistake.
+
+**Does the App see my secrets?** No. Values Terraform marks as sensitive are replaced with `null` before the plan leaves your CI, and so is everything pricing doesn't need. Run `tf-plan-cost strip plan.json` to see the exact upload. The App prices it in memory and never stores or logs it. See [SECURITY.md](SECURITY.md).
+
+**Why does my first PR show the whole stack as new?** Because the plan compares your configuration with the Terraform state. If a workspace has no state yet, every resource is a create. With an existing state, the comment shows only what the PR changes.
+
+**Can I use it without GitHub Actions or the App?** Yes. The CLI works anywhere: `tf-plan-cost diff plan.json` prints Markdown or JSON. See [Install](#install) and [Usage](#usage).
+
+**What does it cost to use?** The App and the Action are free. The App is hosted on AWS Lambda for about $0 a month; to run your own, see [`deploy/aws`](deploy/aws/README.md).
+
+## Contributing and security
+
+Contributions are welcome, especially pricers for more resource types; see [CONTRIBUTING.md](CONTRIBUTING.md). To report a vulnerability, see [SECURITY.md](SECURITY.md).
 
 ## Development
 
