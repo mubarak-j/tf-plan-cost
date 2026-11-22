@@ -21,7 +21,7 @@ $ tf-plan-cost diff plan.json
 Use it as a **GitHub Action** that comments on pull requests (and can fail when a change costs too much), or as a **CLI**.
 
 > [!NOTE]
-> **Status:** the CLI and GitHub Action work. A **GitHub App** mode, which posts a Check Run without AWS credentials in your CI, is next.
+> **Status:** the CLI and GitHub Action work. **GitHub App** mode, which posts a Check Run without AWS credentials in your CI, is in preview: the server is built and tested, but there is no hosted App to install yet.
 
 ## Architecture
 
@@ -90,12 +90,14 @@ The comment still posts and shows a caution. Decreases never fail. Unknown keys 
 | Input | Default | Description |
 |---|---|---|
 | `plan` | *(required)* | Path to `terraform show -json` output |
+| `mode` | `action` | `action`, or `app` for [GitHub App mode](#github-app-preview) |
+| `app-url` | | App server URL (app mode) |
 | `region` | `$AWS_REGION` | Region for resources whose region isn't in the plan |
 | `comment` | `true` | Create or update the PR comment |
 | `comment-id` | `default` | Separate comment per Terraform root, e.g. `prod` |
 | `comment-on-no-change` | `false` | Comment even when nothing changes (an existing comment is always updated) |
 | `config` | `.tf-plan-cost.yml` | Limit config; a missing file means no limit |
-| `github-token` | `${{ github.token }}` | Needs `pull-requests: write` |
+| `github-token` | `${{ github.token }}` | Needs `pull-requests: write` (action mode) |
 
 | Output | Example |
 |---|---|
@@ -103,6 +105,7 @@ The comment still posts and shows a caution. Decreases never fail. Unknown keys 
 | `total-before-monthly-usd` / `total-after-monthly-usd` | `323.57` / `565.81` |
 | `exceeded` | `false` |
 | `comment-url` | link to the comment |
+| `check-url` | link to the Check Run (app mode) |
 
 **Behavior:**
 - **Monorepos:** run the step once per Terraform root with a different `comment-id`. Each root then gets its own comment.
@@ -113,6 +116,61 @@ The comment still posts and shows a caution. Decreases never fail. Unknown keys 
 **Notes:**
 - Until the first release, the action builds `tf-plan-cost` from source on each run. It uses the runner's Go when one is installed (any Go 1.21+ fetches the right version itself), so your `PATH` is unchanged. It installs Go only when none is present.
 - On GitHub Enterprise Server, the API URL is read from `GITHUB_API_URL`.
+
+## GitHub App (preview)
+
+In app mode the Action doesn't price anything itself. It sends the plan to the tf-plan-cost App, which prices it with **its own** AWS credentials and reports back as `tf-plan-cost[bot]`:
+
+- a **Check Run** on the pull request's head commit (`+$242.24/mo`), which fails when the increase is above `fail_above_monthly_usd`, so branch protection can require it;
+- the same PR comment as action mode.
+
+Your workflow needs no AWS pricing credentials and no `pull-requests: write`:
+
+```yaml
+permissions:
+  contents: read
+  id-token: write # proves to the App which repository and run the plan comes from
+
+steps:
+  # ... checkout, terraform init/plan ...
+  - run: terraform show -json tfplan > plan.json
+  - uses: mubarak-j/tf-plan-cost@main
+    with:
+      plan: plan.json
+      mode: app
+      app-url: https://tf-plan-cost.example.com # until the hosted App is available
+```
+
+**What leaves your CI.** Before uploading, the action runs `tf-plan-cost strip`, which keeps only what pricing needs:
+- resource changes, with every value Terraform marks as sensitive replaced by `null`;
+- each AWS provider's `region` expression, and only the root variables those expressions use.
+
+Prior state, outputs, other provider arguments (such as access keys) and unrelated variables are dropped. The App prices the plan in memory and never stores or logs it. Run `tf-plan-cost strip plan.json` to see exactly what would be sent.
+
+**How the upload is trusted.** The action sends the workflow's GitHub Actions OIDC token (audience `tf-plan-cost`). The App checks its signature against GitHub's published keys, along with the issuer, audience and expiry. It then takes the repository, pull request and commit **only from the token's claims**, never from the request. The App must be installed on that repository, and its installation token is limited to that one repository.
+
+**Behavior:**
+- **Pull requests only.** Push events are rejected. Pull requests from forks get no OIDC token, so they can't use app mode.
+- **Outdated runs.** If the PR has newer commits by the time a plan arrives, the check run is still added to the plan's commit, but the comment is left for the newer run.
+- **Re-run.** The App keeps no copy of the plan, so clicking *Re-run* on the check adds a link to the workflow run to re-run instead.
+- **Outputs** are the same as action mode, plus `check-url`. The step itself doesn't fail on the limit; the check does.
+
+**App permissions:** Checks (read and write), Pull requests (read and write), Contents (read, for `.tf-plan-cost.yml`), Metadata (read). The App subscribes only to the `check_run` event.
+
+### Running the App server
+
+`tf-plan-cost serve` runs the App: `POST /webhook`, `POST /v1/plans` and `GET /healthz`. It's configured with environment variables; see [`.env.example`](.env.example).
+
+| Variable | Description |
+|---|---|
+| `GITHUB_APP_ID` | App ID |
+| `GITHUB_PRIVATE_KEY` | App private key: PEM contents or a path to the `.pem` file |
+| `GITHUB_WEBHOOK_SECRET` | Webhook secret, checked against `X-Hub-Signature-256` |
+| `PORT` | Listen port (default `8080`) |
+| `TF_PLAN_COST_OIDC_AUDIENCE` | Expected token audience (default `tf-plan-cost`) |
+| `TF_PLAN_COST_CACHE_DIR` | Price cache directory (default: memory only) |
+
+The server reads prices with the standard AWS credential chain, which needs only `pricing:GetProducts`. Plan uploads are limited to 5 MB.
 
 ## Install
 
@@ -176,7 +234,11 @@ terraform show -json tfplan | tf-plan-cost diff -   # read from stdin
 | `--no-cache` | `false` | Don't read or write the price cache |
 | `--cache-dir` | user cache dir (`~/Library/Caches/tf-plan-cost/prices` on macOS, `~/.cache/tf-plan-cost/prices` on Linux) | Where cached prices are stored |
 
-`tf-plan-cost github-comment --report report.json` posts a JSON report (from `diff --format json`) as a PR comment. It is what the Action runs, and it reads the standard `GITHUB_*` environment variables. Run `tf-plan-cost github-comment -h` for its flags.
+Other commands (run any with `-h` for its flags):
+- `tf-plan-cost github-comment --report report.json` posts a JSON report (from `diff --format json`) as a PR comment. It's what the Action runs in action mode, and it reads the standard `GITHUB_*` environment variables.
+- `tf-plan-cost strip plan.json` prints the plan with sensitive values and everything pricing doesn't need removed.
+- `tf-plan-cost upload --app-url URL plan.json` sends a stripped plan to the App. It's what the Action runs in app mode.
+- `tf-plan-cost serve` runs the App server (see [Running the App server](#running-the-app-server)).
 
 **Exit codes:**
 - `0`: success, including when some resources are listed as not priced.
@@ -230,7 +292,7 @@ All other resource types are listed under **Not priced** as "resource type not s
 **Scope**
 - AWS only, and only the resource types listed above.
 - Regions must be known statically or passed with `--region`. A provider region set from an environment variable in CI, a local value or a module variable can't be read from the plan. AWS provider v6 avoids this, because it records each resource's region in the plan.
-- The plan JSON contains your resource attributes, which can include sensitive values. `tf-plan-cost` only sends price queries (service, region and product attributes) to AWS, never the plan itself.
+- The plan JSON contains your resource attributes, which can include sensitive values. In CLI and action mode, `tf-plan-cost` only sends price queries (service, region and product attributes) to AWS, never the plan itself. In app mode, only the stripped plan is sent to the App (see [What leaves your CI](#github-app-preview)).
 
 ## Development
 

@@ -234,3 +234,12 @@ func plural(n int, one, many string) string {
 	}
 	return fmt.Sprintf("%d %s", n, many)
 }
+
+// Headline is a one-line result for a check run title, e.g. "+$242.24/mo",
+// or "No cost change" when no resources change.
+func Headline(r *pricing.Report) string {
+	if !r.HasChanges() {
+		return "No cost change"
+	}
+	return usd(r.Delta, true) + "/mo"
+}
