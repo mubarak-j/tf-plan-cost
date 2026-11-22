@@ -91,7 +91,7 @@ The comment still posts and shows a caution. Decreases never fail. Unknown keys 
 |---|---|---|
 | `plan` | *(required)* | Path to `terraform show -json` output |
 | `mode` | `action` | `action`, or `app` for [GitHub App mode](#github-app-preview) |
-| `app-url` | `https://tf-plan-cost.mubarak.com` | App server URL (app mode); change it only for your own server |
+| `app-url` | `https://tf-plan-cost.mubarak-j.com` | App server URL (app mode); change it only for your own server |
 | `region` | `$AWS_REGION` | Region for resources whose region isn't in the plan |
 | `comment` | `true` | Create or update the PR comment |
 | `comment-id` | `default` | Separate comment per Terraform root, e.g. `prod` |
