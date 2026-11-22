@@ -70,9 +70,6 @@ outputs:
 runs:
   using: composite
   steps:
-    # Build from the action's own source so the binary matches the ref in
-    # `uses:`. Prefer the runner's Go (GOTOOLCHAIN=auto fetches the exact
-    # version) so the user's PATH is untouched; install Go only if missing.
     - name: Check inputs
       shell: bash
       env:
@@ -91,7 +88,22 @@ runs:
             exit 1 ;;
         esac
 
+    # Use the released binary when `uses:` names a release tag (v1, v1.2.3)
+    # on a Linux runner. Otherwise build from the action's own source, so the
+    # binary always matches the ref in `uses:`.
+    - name: Download tf-plan-cost
+      id: download
+      shell: bash
+      env:
+        ACTION_REPO: ${{ github.action_repository }}
+        ACTION_REF: ${{ github.action_ref }}
+        GH_TOKEN: ${{ github.server_url == 'https://github.com' && inputs.github-token || '' }}
+      run: '"$GITHUB_ACTION_PATH/action/download.sh"'
+
+    # Prefer the runner's Go (GOTOOLCHAIN=auto fetches the exact version) so
+    # the user's PATH is untouched; install Go only if missing.
     - name: Check for Go
+      if: steps.download.outputs.done != 'true'
       id: go
       shell: bash
       run: |
@@ -102,13 +114,14 @@ runs:
         fi
 
     - name: Set up Go
-      if: steps.go.outputs.found != 'true'
+      if: steps.download.outputs.done != 'true' && steps.go.outputs.found != 'true'
       uses: actions/setup-go@v6
       with:
         go-version-file: ${{ github.action_path }}/go.mod
         cache-dependency-path: ${{ github.action_path }}/go.sum
 
     - name: Build tf-plan-cost
+      if: steps.download.outputs.done != 'true'
       shell: bash
       working-directory: ${{ github.action_path }}
       env:
