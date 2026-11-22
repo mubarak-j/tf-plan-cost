@@ -58,13 +58,31 @@ Click **Create GitHub App**. Then:
 
 ## 2. Store the secrets in SSM
 
+Set these to your own values first:
+
 ```sh
 export AWS_PROFILE=my-profile AWS_REGION=us-east-1
+APP_ID=123456                                                      # App ID from the App's General page
+KEY_FILE="$HOME/Downloads/tf-plan-cost.2026-01-31.private-key.pem" # absolute path to the downloaded key
+# WEBHOOK_SECRET is still set from step 1. If not, use the value you entered
+# in the App's webhook secret field.
+```
 
-aws ssm put-parameter --name /tf-plan-cost/app-id --type String --value 'APP_ID'
-aws ssm put-parameter --name /tf-plan-cost/private-key --type SecureString --value file://path/to/tf-plan-cost.*.private-key.pem
+Then store them:
+
+```sh
+aws ssm put-parameter --name /tf-plan-cost/app-id --type String --value "$APP_ID"
+aws ssm put-parameter --name /tf-plan-cost/private-key --type SecureString --value "file://$KEY_FILE"
 aws ssm put-parameter --name /tf-plan-cost/webhook-secret --type SecureString --value "$WEBHOOK_SECRET"
 ```
+
+Each command prints the parameter's `Version`. To check what's stored without showing the secrets:
+
+```sh
+aws ssm get-parameters-by-path --path /tf-plan-cost --query 'Parameters[].[Name,Type]' --output table
+```
+
+`file://` needs an absolute path (`file:///Users/...`), and it doesn't expand `*`. To replace a value, add `--overwrite`.
 
 SecureStrings use the AWS managed key `aws/ssm`. Afterwards, move the `.pem` file to a password manager or delete it; GitHub can always generate a new key.
 
