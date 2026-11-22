@@ -17,15 +17,16 @@ concurrency:
 
 jobs:
   e2e:
-    # Fork PRs get no OIDC token or write access; the role variable must exist.
-    if: github.event.pull_request.head.repo.full_name == github.repository && vars.AWS_PRICING_ROLE_ARN != ''
+    # Only in this repository (the role secret exists only here), and not for
+    # fork PRs, which get no OIDC token or write access.
+    if: github.repository == 'mubarak-j/tf-plan-cost' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
 
       - uses: aws-actions/configure-aws-credentials@v5
         with:
-          role-to-assume: ${{ vars.AWS_PRICING_ROLE_ARN }}
+          role-to-assume: ${{ secrets.AWS_PRICING_ROLE_ARN }} # a secret, so logs mask the account ID
           aws-region: us-east-1
 
       - name: Run the action
