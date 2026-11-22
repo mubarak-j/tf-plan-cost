@@ -38,7 +38,7 @@ These are us-east-1 on-demand prices as of November 2026. The comment always use
 
 Other changes to try: `web_count = 4`, `db_storage_gb = 500`, `db_instance_class = "db.r6g.xlarge"`, or delete the NAT gateway (the cost goes down). To see a failing check, add a `.tf-plan-cost.yml` with `fail_above_monthly_usd: 100`.
 
-To try it without the App, use action mode instead. Replace `mode: app` with your own AWS credentials, allowed to call `pricing:GetProducts`, and `pull-requests: write` (see the main [README](../../README.md#github-action)).
+To try it without the App, use action mode instead. Replace `mode: app` with your own AWS credentials, allowed to call `pricing:GetProducts`, and `pull-requests: write` (see the main [README](../../README.md#github-action-mode)).
 
 ## Keeping the state in sync
 
