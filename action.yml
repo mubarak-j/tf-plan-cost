@@ -17,9 +17,9 @@ inputs:
     required: false
     default: action
   app-url:
-    description: tf-plan-cost App server URL (app mode).
+    description: tf-plan-cost App server URL (app mode). Change it only if you run your own App server.
     required: false
-    default: ""
+    default: https://tf-plan-cost.mubarak.com
   region:
     description: AWS region for resources whose region is not in the plan. Defaults to AWS_REGION.
     required: false
